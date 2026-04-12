@@ -41,5 +41,21 @@ natural_ids = [
     "NC_004102.1", "NC_004148.2", "NC_004355.1", "NC_005084.2"
 ]
 
+# for univec:
+
+    # from Bio import SeqIO
+    # import os
+    #
+    # # 1. Create vectors.fasta from your UniVec text file
+    # univec_text_file = "UniVec/UniVec.txt"  # Adjust the filename/path if necessary
+    # output_vectors = "vectors.fasta"
+    #
+    # if os.path.exists(univec_text_file):
+    #     records = list(SeqIO.parse(univec_text_file, "fasta"))
+    #     SeqIO.write(records, output_vectors, "fasta")
+    #     print(f"Successfully created {output_vectors} with {len(records)} sequences.")
+    # else:
+    #     print(f"Error: Could not find {univec_text_file}")
+
 if __name__ == "__main__":
     download_natural_set(natural_ids, "natural_viruses.fasta")
