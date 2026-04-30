@@ -36,6 +36,17 @@ The system generates a **Genomic Forensic Map** by analyzing three distinct laye
 * **Evidence:** Quantifies informational diversity. Synthetic sequences often show **"Entropy Dips"**—localized drops in complexity where a machine has optimized the genetic code for industrial expression.
 
 ---
+## 🧬 System Architecture
+
+<p align="center">
+  <img src="architecture-preview.png" width="100%" alt="Architecture Diagram Preview">
+</p>
+
+<p align="center">
+  <a href="https://zamiljahid.github.io/ghost_signature_AI/architecture.html">
+    <img src="https://img.shields.io/badge/View-Interactive%20Diagram-FF4B4B?style=for-the-badge&logo=github">
+  </a>
+</p>
 
 ## 📊 3-Tier Classification System
 
