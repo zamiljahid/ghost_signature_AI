@@ -39,7 +39,7 @@ The system generates a **Genomic Forensic Map** by analyzing three distinct laye
 ## 🧬 System Architecture
 
 <p align="center">
-  <img src="architecture-preview.png" width="100%" alt="Architecture Diagram Preview">
+  <img src="architecture.png" width="100%" alt="Architecture Diagram Preview">
 </p>
 
 <p align="center">
