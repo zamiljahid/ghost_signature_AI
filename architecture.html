@@ -1,0 +1,1572 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Synthetic Genomic Detector — Architecture Diagram</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=JetBrains+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+<style>
+  :root {
+    --bg: #060b18;
+    --bg-phase: rgba(10, 20, 40, 0.85);
+    --fg: #e8f0f8;
+    --muted: #5a7a9a;
+    --accent: #00e5a0;
+    --accent2: #00c2ff;
+    --accent3: #ff6b3d;
+    --border: rgba(0, 229, 160, 0.2);
+    --glow: rgba(0, 229, 160, 0.15);
+    --card: rgba(12, 24, 48, 0.9);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Space Grotesk', sans-serif;
+    background: var(--bg);
+    color: var(--fg);
+    overflow-x: hidden;
+    min-height: 100vh;
+  }
+
+  /* Background DNA Canvas */
+  #bgCanvas {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    z-index: 0;
+    pointer-events: none;
+  }
+
+  /* Ambient glow blobs */
+  .ambient-blob {
+    position: fixed;
+    border-radius: 50%;
+    filter: blur(120px);
+    pointer-events: none;
+    z-index: 0;
+  }
+  .blob-1 { width: 500px; height: 500px; background: rgba(0,229,160,0.06); top: -100px; left: -100px; }
+  .blob-2 { width: 400px; height: 400px; background: rgba(0,194,255,0.05); bottom: 10%; right: -50px; }
+  .blob-3 { width: 350px; height: 350px; background: rgba(255,107,61,0.04); top: 50%; left: 30%; }
+
+  .diagram-wrapper {
+    position: relative;
+    z-index: 1;
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 40px 20px 80px;
+  }
+
+  /* Header */
+  .diagram-header {
+    text-align: center;
+    margin-bottom: 50px;
+  }
+  .diagram-header h1 {
+    font-size: clamp(28px, 4vw, 48px);
+    font-weight: 700;
+    letter-spacing: -1px;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin-bottom: 12px;
+  }
+  .diagram-header p {
+    color: var(--muted);
+    font-size: 15px;
+    max-width: 600px;
+    margin: 0 auto;
+    line-height: 1.6;
+  }
+  .header-dna-icon {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 16px;
+    color: var(--accent);
+    font-size: 13px;
+    font-family: 'JetBrains Mono', monospace;
+    text-transform: uppercase;
+    letter-spacing: 3px;
+  }
+
+  /* Phase Container */
+  .phase-container {
+    position: relative;
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    background: var(--bg-phase);
+    backdrop-filter: blur(20px);
+    padding: 28px 28px 24px;
+    margin-bottom: 0;
+    overflow: visible;
+  }
+  .phase-container::before {
+    content: '';
+    position: absolute;
+    inset: -1px;
+    border-radius: 16px;
+    padding: 1px;
+    background: linear-gradient(135deg, rgba(0,229,160,0.3), transparent 50%, rgba(0,194,255,0.2));
+    -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    pointer-events: none;
+  }
+
+  .phase-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 20px;
+  }
+  .phase-number {
+    width: 36px; height: 36px;
+    border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 700;
+    font-size: 15px;
+    color: var(--bg);
+    flex-shrink: 0;
+  }
+  .phase-1 .phase-number { background: var(--accent); }
+  .phase-2 .phase-number { background: var(--accent2); }
+  .phase-3 .phase-number { background: linear-gradient(135deg, var(--accent), var(--accent2)); }
+  .phase-4 .phase-number { background: var(--accent3); }
+
+  .phase-title {
+    font-size: 18px;
+    font-weight: 600;
+    letter-spacing: -0.3px;
+  }
+  .phase-subtitle {
+    font-size: 12px;
+    color: var(--muted);
+    font-family: 'JetBrains Mono', monospace;
+  }
+
+  /* IO Nodes */
+  .io-row {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    flex-wrap: wrap;
+  }
+  .io-node {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: var(--card);
+    border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 10px;
+    padding: 12px 16px;
+    min-width: 200px;
+    flex: 1;
+    transition: border-color 0.3s, transform 0.3s;
+  }
+  .io-node:hover {
+    border-color: var(--border);
+    transform: translateY(-2px);
+  }
+  .io-icon {
+    width: 40px; height: 40px;
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px;
+    flex-shrink: 0;
+  }
+  .io-icon.input-icon { background: rgba(0,229,160,0.12); color: var(--accent); }
+  .io-icon.output-icon { background: rgba(0,194,255,0.12); color: var(--accent2); }
+  .io-icon.threat-icon { background: rgba(255,107,61,0.12); color: var(--accent3); }
+
+  .io-text-label {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    color: var(--muted);
+    font-family: 'JetBrains Mono', monospace;
+    margin-bottom: 2px;
+  }
+  .io-text-value {
+    font-size: 13px;
+    font-weight: 500;
+  }
+
+  /* Process Blocks */
+  .process-row {
+    display: flex;
+    gap: 14px;
+    margin-top: 16px;
+    flex-wrap: wrap;
+  }
+  .process-block {
+    flex: 1;
+    min-width: 220px;
+    background: linear-gradient(135deg, rgba(0,229,160,0.04), rgba(0,194,255,0.03));
+    border: 1px solid rgba(0,229,160,0.1);
+    border-radius: 12px;
+    padding: 18px;
+    position: relative;
+    overflow: hidden;
+    transition: border-color 0.3s, transform 0.3s;
+  }
+  .process-block:hover {
+    border-color: rgba(0,229,160,0.3);
+    transform: translateY(-2px);
+  }
+  .process-block::after {
+    content: '';
+    position: absolute;
+    top: 0; left: -100%;
+    width: 50%; height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(0,229,160,0.05), transparent);
+    animation: shimmer 4s ease-in-out infinite;
+  }
+  @keyframes shimmer {
+    0% { left: -100%; }
+    50% { left: 150%; }
+    100% { left: 150%; }
+  }
+  .process-block-header {
+    display: flex; align-items: center; gap: 8px;
+    margin-bottom: 10px;
+  }
+  .process-block-icon {
+    width: 28px; height: 28px;
+    border-radius: 6px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 12px;
+    background: rgba(0,229,160,0.1);
+    color: var(--accent);
+  }
+  .process-block-title {
+    font-size: 13px;
+    font-weight: 600;
+  }
+  .process-block-desc {
+    font-size: 12px;
+    color: var(--muted);
+    line-height: 1.6;
+  }
+
+  /* Parallel tracks for Phase 2 */
+  .parallel-tracks {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    gap: 0;
+    margin-top: 16px;
+    align-items: stretch;
+  }
+  .parallel-track {
+    background: var(--card);
+    border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 12px;
+    padding: 20px;
+    position: relative;
+    overflow: hidden;
+    transition: border-color 0.3s, transform 0.3s;
+  }
+  .parallel-track:hover {
+    border-color: rgba(0,194,255,0.3);
+    transform: translateY(-2px);
+  }
+  .parallel-track::after {
+    content: '';
+    position: absolute;
+    top: 0; left: -100%;
+    width: 50%; height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(0,194,255,0.04), transparent);
+    animation: shimmer 5s ease-in-out infinite;
+  }
+  .track-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11px;
+    font-family: 'JetBrains Mono', monospace;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    padding: 4px 10px;
+    border-radius: 6px;
+    margin-bottom: 14px;
+  }
+  .track-a .track-label { background: rgba(0,229,160,0.1); color: var(--accent); }
+  .track-b .track-label { background: rgba(0,194,255,0.1); color: var(--accent2); }
+
+  .track-title {
+    font-size: 15px;
+    font-weight: 600;
+    margin-bottom: 8px;
+  }
+  .track-desc {
+    font-size: 12px;
+    color: var(--muted);
+    line-height: 1.6;
+    margin-bottom: 14px;
+  }
+
+  /* k-mer visualization */
+  .kmer-visual {
+    display: flex;
+    gap: 3px;
+    flex-wrap: wrap;
+    margin-top: 10px;
+  }
+  .kmer-tile {
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    font-weight: 500;
+    animation: kmerPulse 3s ease-in-out infinite;
+  }
+  .kmer-tile:nth-child(odd) { background: rgba(0,229,160,0.12); color: var(--accent); }
+  .kmer-tile:nth-child(even) { background: rgba(0,199,255,0.1); color: var(--accent2); }
+  .kmer-tile.flagged { background: rgba(255,107,61,0.2); color: var(--accent3); animation: kmerFlag 1.5s ease-in-out infinite; }
+
+  @keyframes kmerPulse {
+    0%, 100% { opacity: 0.7; }
+    50% { opacity: 1; }
+  }
+  @keyframes kmerFlag {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(255,107,61,0); }
+    50% { box-shadow: 0 0 8px 2px rgba(255,107,61,0.3); }
+  }
+
+  /* Alignment bars */
+  .align-bars {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-top: 10px;
+  }
+  .align-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 10px;
+    font-family: 'JetBrains Mono', monospace;
+    color: var(--muted);
+  }
+  .align-bar-bg {
+    flex: 1;
+    height: 8px;
+    background: rgba(255,255,255,0.04);
+    border-radius: 4px;
+    overflow: hidden;
+    position: relative;
+  }
+  .align-bar-fill {
+    height: 100%;
+    border-radius: 4px;
+    animation: alignGrow 2s ease-out forwards;
+    transform-origin: left;
+  }
+  .align-bar-fill.mapped { background: linear-gradient(90deg, var(--accent), var(--accent2)); }
+  .align-bar-fill.unmapped { background: var(--accent3); }
+  @keyframes alignGrow {
+    0% { width: 0%; }
+  }
+
+  /* Parallel divider */
+  .parallel-divider {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 0 12px;
+    position: relative;
+  }
+  .divider-line {
+    width: 2px;
+    flex: 1;
+    background: linear-gradient(to bottom, transparent, var(--border), transparent);
+    position: relative;
+  }
+  .divider-dots {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    align-items: center;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+  }
+  .divider-dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--accent);
+    animation: dotPulse 2s ease-in-out infinite;
+  }
+  .divider-dot:nth-child(2) { animation-delay: 0.3s; background: var(--accent2); }
+  .divider-dot:nth-child(3) { animation-delay: 0.6s; background: var(--accent); }
+  @keyframes dotPulse {
+    0%, 100% { opacity: 0.3; transform: scale(0.8); }
+    50% { opacity: 1; transform: scale(1.2); }
+  }
+
+  /* Output node for Phase 2 */
+  .phase-output-features {
+    display: flex;
+    gap: 10px;
+    margin-top: 16px;
+    flex-wrap: wrap;
+  }
+  .feature-tag {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 14px;
+    border-radius: 8px;
+    font-size: 12px;
+    font-weight: 500;
+    background: var(--card);
+    border: 1px solid rgba(255,255,255,0.06);
+    animation: tagFloat 4s ease-in-out infinite;
+  }
+  .feature-tag:nth-child(1) { animation-delay: 0s; }
+  .feature-tag:nth-child(2) { animation-delay: 0.5s; }
+  .feature-tag:nth-child(3) { animation-delay: 1s; }
+  @keyframes tagFloat {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-3px); }
+  }
+  .feature-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  /* Classification visual for Phase 3 */
+  .classifier-visual {
+    margin-top: 18px;
+    background: var(--card);
+    border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 12px;
+    padding: 20px;
+    position: relative;
+    overflow: hidden;
+  }
+  .classifier-visual::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(circle at 30% 50%, rgba(0,229,160,0.05), transparent 60%),
+                radial-gradient(circle at 70% 50%, rgba(255,107,61,0.05), transparent 60%);
+    pointer-events: none;
+  }
+  .classifier-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 16px;
+    position: relative;
+  }
+  .classifier-title {
+    font-size: 14px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .classifier-badge {
+    font-size: 10px;
+    font-family: 'JetBrains Mono', monospace;
+    padding: 3px 8px;
+    border-radius: 4px;
+    background: rgba(0,229,160,0.12);
+    color: var(--accent);
+  }
+
+  /* Decision tree animation */
+  .decision-tree {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0;
+    position: relative;
+    min-height: 120px;
+  }
+  .tree-node {
+    text-align: center;
+    position: relative;
+  }
+  .tree-node-circle {
+    width: 50px; height: 50px;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    margin: 0 auto 6px;
+    font-size: 16px;
+    position: relative;
+  }
+  .tree-node-circle.root {
+    background: linear-gradient(135deg, rgba(0,229,160,0.15), rgba(0,194,255,0.15));
+    border: 2px solid var(--accent);
+    animation: nodeGlow 3s ease-in-out infinite;
+  }
+  .tree-node-circle.natural {
+    background: rgba(0,229,160,0.1);
+    border: 2px solid rgba(0,229,160,0.4);
+  }
+  .tree-node-circle.synthetic {
+    background: rgba(255,107,61,0.1);
+    border: 2px solid rgba(255,107,61,0.4);
+    animation: syntheticPulse 2s ease-in-out infinite;
+  }
+  @keyframes nodeGlow {
+    0%, 100% { box-shadow: 0 0 10px rgba(0,229,160,0.2); }
+    50% { box-shadow: 0 0 25px rgba(0,229,160,0.4); }
+  }
+  @keyframes syntheticPulse {
+    0%, 100% { box-shadow: 0 0 5px rgba(255,107,61,0.2); }
+    50% { box-shadow: 0 0 20px rgba(255,107,61,0.5); }
+  }
+  .tree-node-label {
+    font-size: 10px;
+    font-family: 'JetBrains Mono', monospace;
+    color: var(--muted);
+  }
+
+  .tree-branch {
+    width: 60px;
+    height: 2px;
+    position: relative;
+    align-self: center;
+    margin-top: -20px;
+  }
+  .tree-branch-line {
+    width: 100%;
+    height: 2px;
+    background: var(--border);
+    position: relative;
+  }
+  .tree-branch-line::after {
+    content: '';
+    position: absolute;
+    top: -2px; left: 0;
+    width: 12px; height: 6px;
+    border-radius: 3px;
+    animation: branchFlow 2s linear infinite;
+  }
+  .tree-branch.to-natural .tree-branch-line::after { background: var(--accent); }
+  .tree-branch.to-synthetic .tree-branch-line::after { background: var(--accent3); }
+  @keyframes branchFlow {
+    0% { left: -12px; }
+    100% { left: 100%; }
+  }
+  .tree-branch-label {
+    position: absolute;
+    top: -18px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 9px;
+    font-family: 'JetBrains Mono', monospace;
+    white-space: nowrap;
+  }
+  .tree-branch.to-natural .tree-branch-label { color: var(--accent); }
+  .tree-branch.to-synthetic .tree-branch-label { color: var(--accent3); }
+
+  /* Confidence meter */
+  .confidence-meter {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-top: 18px;
+    padding: 16px;
+    background: rgba(255,107,61,0.05);
+    border: 1px solid rgba(255,107,61,0.15);
+    border-radius: 10px;
+  }
+  .meter-circle {
+    width: 64px; height: 64px;
+    border-radius: 50%;
+    position: relative;
+    flex-shrink: 0;
+  }
+  .meter-circle svg {
+    width: 100%; height: 100%;
+    transform: rotate(-90deg);
+  }
+  .meter-circle-bg {
+    fill: none;
+    stroke: rgba(255,107,61,0.15);
+    stroke-width: 5;
+  }
+  .meter-circle-fill {
+    fill: none;
+    stroke: var(--accent3);
+    stroke-width: 5;
+    stroke-linecap: round;
+    stroke-dasharray: 163;
+    stroke-dashoffset: 163;
+    animation: meterFill 3s ease-out 1s forwards;
+  }
+  @keyframes meterFill {
+    to { stroke-dashoffset: 30; }
+  }
+  .meter-value {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--accent3);
+  }
+  .meter-info {
+    flex: 1;
+  }
+  .meter-title {
+    font-size: 13px;
+    font-weight: 600;
+    margin-bottom: 4px;
+  }
+  .meter-desc {
+    font-size: 11px;
+    color: var(--muted);
+    line-height: 1.5;
+  }
+
+  /* Phase 4 Report visual */
+  .report-visual {
+    margin-top: 18px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+  }
+  .report-card {
+    background: var(--card);
+    border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 12px;
+    padding: 18px;
+    position: relative;
+    overflow: hidden;
+    transition: transform 0.3s, border-color 0.3s;
+  }
+  .report-card:hover {
+    transform: translateY(-2px);
+    border-color: var(--border);
+  }
+  .report-card-title {
+    font-size: 12px;
+    color: var(--muted);
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .report-card-title i { color: var(--accent3); }
+
+  /* Genome map visualization */
+  .genome-map {
+    display: flex;
+    gap: 2px;
+    height: 32px;
+    align-items: end;
+  }
+  .genome-bar {
+    flex: 1;
+    border-radius: 2px 2px 0 0;
+    animation: barGrow 2s ease-out forwards;
+    transform-origin: bottom;
+    transform: scaleY(0);
+  }
+  .genome-bar.safe { background: var(--accent); opacity: 0.3; }
+  .genome-bar.flagged { background: var(--accent3); opacity: 0.8; animation: barGrow 2s ease-out forwards, flaggedPulse 2s ease-in-out 2s infinite; }
+  @keyframes barGrow {
+    to { transform: scaleY(1); }
+  }
+  @keyframes flaggedPulse {
+    0%, 100% { opacity: 0.6; }
+    50% { opacity: 1; }
+  }
+  .genome-legend {
+    display: flex;
+    gap: 16px;
+    margin-top: 10px;
+    font-size: 10px;
+    color: var(--muted);
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .legend-dot {
+    width: 8px; height: 8px;
+    border-radius: 2px;
+    display: inline-block;
+    margin-right: 4px;
+    vertical-align: middle;
+  }
+
+  /* Threat score display */
+  .threat-display {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .threat-level {
+    flex: 1;
+  }
+  .threat-level-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 8px;
+  }
+  .threat-level-label {
+    font-size: 11px;
+    color: var(--muted);
+    width: 60px;
+    flex-shrink: 0;
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .threat-level-bar-bg {
+    flex: 1;
+    height: 6px;
+    background: rgba(255,255,255,0.04);
+    border-radius: 3px;
+    overflow: hidden;
+  }
+  .threat-level-bar-fill {
+    height: 100%;
+    border-radius: 3px;
+    transform-origin: left;
+    animation: threatGrow 2s ease-out 0.5s forwards;
+    transform: scaleX(0);
+  }
+  @keyframes threatGrow {
+    to { transform: scaleX(1); }
+  }
+
+  .threat-score-big {
+    text-align: center;
+    padding: 12px;
+  }
+  .threat-score-number {
+    font-size: 36px;
+    font-weight: 700;
+    color: var(--accent3);
+    line-height: 1;
+    animation: scoreCount 2s ease-out forwards;
+  }
+  .threat-score-label {
+    font-size: 10px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    font-family: 'JetBrains Mono', monospace;
+    margin-top: 4px;
+  }
+
+  /* Flow connectors between phases */
+  .flow-connector {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 8px 0;
+    position: relative;
+    height: 60px;
+  }
+  .flow-line {
+    width: 2px;
+    flex: 1;
+    background: linear-gradient(to bottom, var(--accent), var(--accent2));
+    position: relative;
+    overflow: hidden;
+    border-radius: 1px;
+  }
+  .flow-line::after {
+    content: '';
+    position: absolute;
+    top: -20px;
+    left: -3px;
+    width: 8px;
+    height: 20px;
+    border-radius: 4px;
+    background: var(--accent);
+    animation: flowDown 1.5s linear infinite;
+    box-shadow: 0 0 10px var(--accent), 0 0 20px rgba(0,229,160,0.3);
+  }
+  @keyframes flowDown {
+    0% { top: -20px; }
+    100% { top: 100%; }
+  }
+  .flow-arrow {
+    width: 0; height: 0;
+    border-left: 8px solid transparent;
+    border-right: 8px solid transparent;
+    border-top: 10px solid var(--accent2);
+    filter: drop-shadow(0 0 6px rgba(0,194,255,0.4));
+  }
+  .flow-label {
+    position: absolute;
+    right: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 9px;
+    font-family: 'JetBrains Mono', monospace;
+    color: var(--muted);
+    background: var(--bg);
+    padding: 2px 8px;
+    border-radius: 4px;
+    border: 1px solid rgba(255,255,255,0.06);
+  }
+
+  /* Split flow connector for Phase 1 -> Phase 2 */
+  .split-connector {
+    height: 50px;
+    position: relative;
+    display: flex;
+    justify-content: center;
+  }
+  .split-line-container {
+    position: absolute;
+    inset: 0;
+  }
+  .split-svg {
+    width: 100%;
+    height: 100%;
+    overflow: visible;
+  }
+  .split-path {
+    fill: none;
+    stroke-width: 2;
+    stroke-linecap: round;
+  }
+  .split-path-left {
+    stroke: var(--accent);
+    stroke-dasharray: 6 4;
+    animation: dashFlow 1s linear infinite;
+  }
+  .split-path-right {
+    stroke: var(--accent2);
+    stroke-dasharray: 6 4;
+    animation: dashFlow 1s linear infinite;
+  }
+  @keyframes dashFlow {
+    to { stroke-dashoffset: -20; }
+  }
+
+  /* Merge connector for Phase 2 -> Phase 3 */
+  .merge-connector {
+    height: 50px;
+    position: relative;
+    display: flex;
+    justify-content: center;
+  }
+
+  /* Floating DNA elements */
+  .floating-dna {
+    position: absolute;
+    pointer-events: none;
+    opacity: 0.08;
+    font-size: 60px;
+    animation: dnaFloat 8s ease-in-out infinite;
+  }
+  .floating-dna.fd1 { top: 10%; right: -20px; animation-delay: 0s; }
+  .floating-dna.fd2 { bottom: 20%; left: -30px; animation-delay: 2s; font-size: 45px; }
+  @keyframes dnaFloat {
+    0%, 100% { transform: translateY(0) rotate(0deg); }
+    50% { transform: translateY(-15px) rotate(5deg); }
+  }
+
+  /* Report dashboard final */
+  .final-report-card {
+    margin-top: 18px;
+    background: linear-gradient(135deg, rgba(255,107,61,0.06), rgba(0,229,160,0.04));
+    border: 1px solid rgba(255,107,61,0.2);
+    border-radius: 14px;
+    padding: 24px;
+    position: relative;
+    overflow: hidden;
+  }
+  .final-report-card::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    right: -20%;
+    width: 300px;
+    height: 300px;
+    background: radial-gradient(circle, rgba(255,107,61,0.08), transparent 60%);
+    pointer-events: none;
+  }
+  .final-report-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 16px;
+    position: relative;
+  }
+  .final-report-icon {
+    width: 44px; height: 44px;
+    border-radius: 10px;
+    background: rgba(255,107,61,0.12);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 20px;
+    color: var(--accent3);
+  }
+  .final-report-title {
+    font-size: 16px;
+    font-weight: 600;
+  }
+  .final-report-subtitle {
+    font-size: 11px;
+    color: var(--muted);
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .report-items {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+    position: relative;
+  }
+  .report-item {
+    flex: 1;
+    min-width: 140px;
+    background: rgba(0,0,0,0.2);
+    border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 10px;
+    padding: 14px;
+    text-align: center;
+    transition: transform 0.3s;
+  }
+  .report-item:hover { transform: translateY(-3px); }
+  .report-item-icon {
+    font-size: 20px;
+    margin-bottom: 8px;
+  }
+  .report-item-label {
+    font-size: 10px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    font-family: 'JetBrains Mono', monospace;
+  }
+
+  /* Scrollbar */
+  ::-webkit-scrollbar { width: 6px; }
+  ::-webkit-scrollbar-track { background: var(--bg); }
+  ::-webkit-scrollbar-thumb { background: rgba(0,229,160,0.2); border-radius: 3px; }
+
+  /* Responsive */
+  @media (max-width: 768px) {
+    .parallel-tracks { grid-template-columns: 1fr; }
+    .parallel-divider {
+      flex-direction: row;
+      height: auto;
+      padding: 8px 0;
+      width: 100%;
+    }
+    .divider-line { width: auto; height: 2px; flex: 1; }
+    .report-visual { grid-template-columns: 1fr; }
+    .diagram-wrapper { padding: 20px 12px 60px; }
+    .phase-container { padding: 20px 16px; }
+    .decision-tree { flex-direction: column; gap: 10px; }
+    .tree-branch { width: 2px; height: 30px; margin-top: 0; margin-left: 24px; }
+    .tree-branch-line { width: 2px; height: 100%; }
+    .tree-branch-label { top: 50%; left: 14px; transform: translateY(-50%); }
+  }
+
+  /* Phase entrance animations */
+  .phase-container, .flow-connector, .split-connector, .merge-connector {
+    opacity: 0;
+    transform: translateY(30px);
+    animation: phaseEnter 0.8s ease-out forwards;
+  }
+  .phase-container:nth-child(1) { animation-delay: 0.1s; }
+  .flow-connector:nth-child(2) { animation-delay: 0.3s; }
+  .split-connector:nth-child(3) { animation-delay: 0.4s; }
+  .phase-container:nth-child(4) { animation-delay: 0.5s; }
+  .merge-connector:nth-child(5) { animation-delay: 0.7s; }
+  .phase-container:nth-child(6) { animation-delay: 0.8s; }
+  .flow-connector:nth-child(7) { animation-delay: 1.0s; }
+  .phase-container:nth-child(8) { animation-delay: 1.1s; }
+  @keyframes phaseEnter {
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  /* Nucleotide rain on the side */
+  .nucleotide-rain {
+    position: fixed;
+    top: 0;
+    width: 40px;
+    height: 100vh;
+    z-index: 0;
+    pointer-events: none;
+    overflow: hidden;
+  }
+  .nucleotide-rain.left { left: 0; }
+  .nucleotide-rain.right { right: 0; }
+  .nuc-drop {
+    position: absolute;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    opacity: 0.12;
+    animation: nucFall linear infinite;
+  }
+  @keyframes nucFall {
+    0% { transform: translateY(-20px); opacity: 0; }
+    10% { opacity: 0.12; }
+    90% { opacity: 0.12; }
+    100% { transform: translateY(100vh); opacity: 0; }
+  }
+</style>
+</head>
+<body>
+
+<!-- Background Canvas for DNA Helix -->
+<canvas id="bgCanvas"></canvas>
+
+<!-- Ambient blobs -->
+<div class="ambient-blob blob-1"></div>
+<div class="ambient-blob blob-2"></div>
+<div class="ambient-blob blob-3"></div>
+
+<!-- Nucleotide rain sides -->
+<div class="nucleotide-rain left" id="nucRainLeft"></div>
+<div class="nucleotide-rain right" id="nucRainRight"></div>
+
+<div class="diagram-wrapper">
+
+  <!-- Header -->
+  <header class="diagram-header">
+    <div class="header-dna-icon">
+      <i class="fas fa-dna"></i>
+      <span>System Architecture</span>
+    </div>
+    <h1>Synthetic Genomic Detector</h1>
+    <p>End-to-end bioinformatics pipeline for identifying engineered genetic sequences through k-mer complexity analysis, database alignment, and machine learning classification.</p>
+  </header>
+
+  <!-- ==================== PHASE 1 ==================== -->
+  <section class="phase-container phase-1">
+    <div class="floating-dna fd1"><i class="fas fa-dna"></i></div>
+    <div class="phase-label">
+      <div class="phase-number">1</div>
+      <div>
+        <div class="phase-title">Data Ingestion & Pre-Processing</div>
+        <div class="phase-subtitle">Entry point — Raw data standardization</div>
+      </div>
+    </div>
+
+    <!-- Input -->
+    <div class="io-row">
+      <div class="io-node">
+        <div class="io-icon input-icon"><i class="fas fa-file-code"></i></div>
+        <div>
+          <div class="io-text-label">Input</div>
+          <div class="io-text-value">Raw Genomic Sequences <span style="color:var(--muted);font-size:11px;">(FASTA / FASTQ)</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Processes -->
+    <div class="process-row">
+      <div class="process-block">
+        <div class="process-block-header">
+          <div class="process-block-icon"><i class="fas fa-shield-halved"></i></div>
+          <div class="process-block-title">Sequence Validation</div>
+        </div>
+        <div class="process-block-desc">Checks for formatting errors, verifies file structure integrity, and filters out invalid nucleotide characters (non-ATCG/N bases).</div>
+      </div>
+      <div class="process-block">
+        <div class="process-block-header">
+          <div class="process-block-icon"><i class="fas fa-arrows-rotate"></i></div>
+          <div class="process-block-title">Standardization</div>
+        </div>
+        <div class="process-block-desc">Normalizes sequence data into a uniform format — consistent encoding, header parsing, and quality score calibration for downstream engines.</div>
+      </div>
+    </div>
+
+    <!-- Output -->
+    <div class="io-row" style="margin-top:16px;">
+      <div class="io-node">
+        <div class="io-icon output-icon"><i class="fas fa-database"></i></div>
+        <div>
+          <div class="io-text-label">Output</div>
+          <div class="io-text-value">Cleaned Genomic Sequence Data</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ==================== SPLIT CONNECTOR ==================== -->
+  <div class="split-connector">
+    <div class="split-line-container">
+      <svg class="split-svg" viewBox="0 0 400 50" preserveAspectRatio="none">
+        <path class="split-path split-path-left" d="M200,0 C200,25 100,25 100,50" />
+        <path class="split-path split-path-right" d="M200,0 C200,25 300,25 300,50" />
+      </svg>
+    </div>
+  </div>
+
+  <!-- ==================== PHASE 2 ==================== -->
+  <section class="phase-container phase-2">
+    <div class="floating-dna fd2"><i class="fas fa-virus"></i></div>
+    <div class="phase-label">
+      <div class="phase-number">2</div>
+      <div>
+        <div class="phase-title">Bioinformatics Analysis Engine</div>
+        <div class="phase-subtitle">Parallel processing — Core analysis logic</div>
+      </div>
+    </div>
+
+    <!-- Input -->
+    <div class="io-row">
+      <div class="io-node">
+        <div class="io-icon input-icon"><i class="fas fa-database"></i></div>
+        <div>
+          <div class="io-text-label">Input</div>
+          <div class="io-text-value">Cleaned Genomic Sequence Data</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Parallel Tracks -->
+    <div class="parallel-tracks">
+      <!-- Track A: k-mer -->
+      <div class="parallel-track track-a">
+        <div class="track-label"><i class="fas fa-cubes"></i> Track A</div>
+        <div class="track-title">k-mer Complexity Analysis</div>
+        <div class="track-desc">Breaks the sequence into substrings of length k, calculates frequency distributions, and identifies unnatural repetitions or low-complexity regions indicative of synthetic assembly.</div>
+        <div class="kmer-visual" id="kmerVisual"></div>
+      </div>
+
+      <!-- Divider -->
+      <div class="parallel-divider">
+        <div class="divider-line">
+          <div class="divider-dots">
+            <div class="divider-dot"></div>
+            <div class="divider-dot"></div>
+            <div class="divider-dot"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Track B: BLAST+ -->
+      <div class="parallel-track track-b">
+        <div class="track-label"><i class="fas fa-magnifying-glass-chart"></i> Track B</div>
+        <div class="track-title">BLAST+ Database Alignment</div>
+        <div class="track-desc">Queries the sequence against established databases of natural genomes. Identifies "unmapped" regions or anomalous alignments that do not correspond to known evolutionary biology.</div>
+        <div class="align-bars" id="alignBars"></div>
+      </div>
+    </div>
+
+    <!-- Output Features -->
+    <div class="phase-output-features">
+      <div class="feature-tag">
+        <div class="feature-dot" style="background:var(--accent);"></div>
+        Complexity Scores
+      </div>
+      <div class="feature-tag">
+        <div class="feature-dot" style="background:var(--accent2);"></div>
+        Alignment Gaps
+      </div>
+      <div class="feature-tag">
+        <div class="feature-dot" style="background:var(--accent3);"></div>
+        Anomaly Flags
+      </div>
+    </div>
+  </section>
+
+  <!-- ==================== MERGE CONNECTOR ==================== -->
+  <div class="merge-connector">
+    <div class="split-line-container">
+      <svg class="split-svg" viewBox="0 0 400 50" preserveAspectRatio="none">
+        <path class="split-path split-path-left" d="M100,0 C100,25 200,25 200,50" />
+        <path class="split-path split-path-right" d="M300,0 C300,25 200,25 200,50" />
+      </svg>
+    </div>
+  </div>
+
+  <!-- ==================== PHASE 3 ==================== -->
+  <section class="phase-container phase-3">
+    <div class="phase-label">
+      <div class="phase-number">3</div>
+      <div>
+        <div class="phase-title">Synthetic Marker Detection</div>
+        <div class="phase-subtitle">Classification — Detection logic engine</div>
+      </div>
+    </div>
+
+    <!-- Input -->
+    <div class="io-row">
+      <div class="io-node">
+        <div class="io-icon input-icon"><i class="fas fa-puzzle-piece"></i></div>
+        <div>
+          <div class="io-text-label">Input</div>
+          <div class="io-text-value">Extracted Genomic Features <span style="color:var(--muted);font-size:11px;">(from Phase 2)</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Classifier Visual -->
+    <div class="classifier-visual">
+      <div class="classifier-header">
+        <div class="classifier-title">
+          <i class="fas fa-brain" style="color:var(--accent);"></i>
+          Feature Evaluation & Classification
+        </div>
+        <div class="classifier-badge">Random Forest</div>
+      </div>
+      <div class="process-block-desc" style="margin-bottom:16px;">The system analyzes combined k-mer anomalies and BLAST+ alignment gaps, applying a trained Random Forest model to differentiate between natural mutations and engineered "ghost" signatures.</div>
+
+      <!-- Decision tree -->
+      <div class="decision-tree">
+        <div class="tree-node">
+          <div class="tree-node-circle root"><i class="fas fa-sitemap" style="color:var(--accent);font-size:18px;"></i></div>
+          <div class="tree-node-label">Feature<br>Vector</div>
+        </div>
+        <div class="tree-branch to-natural">
+          <div class="tree-branch-line"></div>
+          <div class="tree-branch-label">Low Anomaly</div>
+        </div>
+        <div class="tree-node">
+          <div class="tree-node-circle natural"><i class="fas fa-leaf" style="color:var(--accent);font-size:16px;"></i></div>
+          <div class="tree-node-label">Natural<br>Origin</div>
+        </div>
+        <div style="width:20px;"></div>
+        <div class="tree-node">
+          <div class="tree-node-circle synthetic"><i class="fas fa-flask" style="color:var(--accent3);font-size:16px;"></i></div>
+          <div class="tree-node-label">Synthetic<br>Origin</div>
+        </div>
+        <div class="tree-branch to-synthetic">
+          <div class="tree-branch-line"></div>
+          <div class="tree-branch-label">High Anomaly</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Confidence Meter Output -->
+    <div class="confidence-meter">
+      <div class="meter-circle">
+        <svg viewBox="0 0 60 60">
+          <circle class="meter-circle-bg" cx="30" cy="30" r="26" />
+          <circle class="meter-circle-fill" cx="30" cy="30" r="26" />
+        </svg>
+        <div class="meter-value">87%</div>
+      </div>
+      <div class="meter-info">
+        <div class="meter-title">Detection Confidence Score</div>
+        <div class="meter-desc">Probability of synthetic origin calculated by the ensemble classifier across all decision trees.</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ==================== FLOW CONNECTOR ==================== -->
+  <div class="flow-connector">
+    <div class="flow-line"></div>
+    <div class="flow-arrow"></div>
+    <div class="flow-label">Score + Coordinates</div>
+  </div>
+
+  <!-- ==================== PHASE 4 ==================== -->
+  <section class="phase-container phase-4">
+    <div class="phase-label">
+      <div class="phase-number">4</div>
+      <div>
+        <div class="phase-title">Genomic Threat Mapping & Output</div>
+        <div class="phase-subtitle">Final phase — Actionable insights</div>
+      </div>
+    </div>
+
+    <!-- Processes -->
+    <div class="process-row">
+      <div class="process-block" style="border-color:rgba(255,107,61,0.15);">
+        <div class="process-block-header">
+          <div class="process-block-icon" style="background:rgba(255,107,61,0.1);color:var(--accent3);"><i class="fas fa-map-location-dot"></i></div>
+          <div class="process-block-title">Sequence Coordinate Mapping</div>
+        </div>
+        <div class="process-block-desc">Maps the flagged synthetic signatures exactly back to their base-pair locations on the original input sequence for precise identification.</div>
+      </div>
+      <div class="process-block" style="border-color:rgba(255,107,61,0.15);">
+        <div class="process-block-header">
+          <div class="process-block-icon" style="background:rgba(255,107,61,0.1);color:var(--accent3);"><i class="fas fa-gauge-high"></i></div>
+          <div class="process-block-title">Threat Scoring</div>
+        </div>
+        <div class="process-block-desc">Calculates an overall biosecurity threat level based on the density, type, and distribution of synthetic markers found in the sequence.</div>
+      </div>
+    </div>
+
+    <!-- Report Visual -->
+    <div class="report-visual">
+      <!-- Genome Map -->
+      <div class="report-card">
+        <div class="report-card-title"><i class="fas fa-chart-bar"></i> Genomic Map — Synthetic Regions</div>
+        <div class="genome-map" id="genomeMap"></div>
+        <div class="genome-legend">
+          <span><span class="legend-dot" style="background:var(--accent);opacity:0.3;"></span>Natural</span>
+          <span><span class="legend-dot" style="background:var(--accent3);"></span>Flagged</span>
+        </div>
+      </div>
+
+      <!-- Threat Levels -->
+      <div class="report-card">
+        <div class="report-card-title"><i class="fas fa-triangle-exclamation"></i> Threat Level Breakdown</div>
+        <div style="display:flex;gap:12px;align-items:start;">
+          <div class="threat-score-big">
+            <div class="threat-score-number" id="threatScoreNum">0</div>
+            <div class="threat-score-label">Threat Score</div>
+          </div>
+          <div class="threat-level" style="flex:1;">
+            <div class="threat-level-row">
+              <span class="threat-level-label">Density</span>
+              <div class="threat-level-bar-bg">
+                <div class="threat-level-bar-fill" style="width:72%;background:var(--accent3);"></div>
+              </div>
+            </div>
+            <div class="threat-level-row">
+              <span class="threat-level-label">Type</span>
+              <div class="threat-level-bar-bg">
+                <div class="threat-level-bar-fill" style="width:58%;background:var(--accent2);"></div>
+              </div>
+            </div>
+            <div class="threat-level-row">
+              <span class="threat-level-label">Dist.</span>
+              <div class="threat-level-bar-bg">
+                <div class="threat-level-bar-fill" style="width:85%;background:var(--accent);"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Final Report -->
+    <div class="final-report-card">
+      <div class="final-report-header">
+        <div class="final-report-icon"><i class="fas fa-file-waveform"></i></div>
+        <div>
+          <div class="final-report-title">Final Report Output</div>
+          <div class="final-report-subtitle">Actionable biosecurity intelligence</div>
+        </div>
+      </div>
+      <div class="report-items">
+        <div class="report-item">
+          <div class="report-item-icon" style="color:var(--accent3);"><i class="fas fa-map"></i></div>
+          <div class="report-item-label">Visual Genome Map</div>
+        </div>
+        <div class="report-item">
+          <div class="report-item-icon" style="color:var(--accent);"><i class="fas fa-chart-pie"></i></div>
+          <div class="report-item-label">Threat Score</div>
+        </div>
+        <div class="report-item">
+          <div class="report-item-icon" style="color:var(--accent2);"><i class="fas fa-location-dot"></i></div>
+          <div class="report-item-label">Base-Pair Locations</div>
+        </div>
+        <div class="report-item">
+          <div class="report-item-icon" style="color:var(--accent3);"><i class="fas fa-list-check"></i></div>
+          <div class="report-item-label">Marker Catalog</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+<script>
+// ============== Background DNA Helix Canvas ==============
+const canvas = document.getElementById('bgCanvas');
+const ctx = canvas.getContext('2d');
+let width, height, time = 0;
+
+function resizeCanvas() {
+  width = canvas.width = window.innerWidth;
+  height = canvas.height = window.innerHeight;
+}
+resizeCanvas();
+window.addEventListener('resize', resizeCanvas);
+
+function drawDNAHelix() {
+  ctx.clearRect(0, 0, width, height);
+  const cx = width * 0.85;
+  const amplitude = 40;
+  const verticalSpacing = 18;
+  const totalPoints = Math.ceil(height / verticalSpacing) + 2;
+  const phase = time * 0.02;
+
+  for (let i = 0; i < totalPoints; i++) {
+    const y = i * verticalSpacing;
+    const angle = i * 0.25 + phase;
+    const x1 = cx + Math.sin(angle) * amplitude;
+    const x2 = cx + Math.sin(angle + Math.PI) * amplitude;
+
+    // Depth based on cos for 3D effect
+    const depth1 = (Math.cos(angle) + 1) / 2;
+    const depth2 = (Math.cos(angle + Math.PI) + 1) / 2;
+
+    // Draw connecting rungs
+    if (i % 3 === 0) {
+      ctx.beginPath();
+      ctx.moveTo(x1, y);
+      ctx.lineTo(x2, y);
+      ctx.strokeStyle = `rgba(0, 229, 160, ${0.04 + depth1 * 0.03})`;
+      ctx.lineWidth = 1;
+      ctx.stroke();
+    }
+
+    // Draw strand 1 nodes
+    ctx.beginPath();
+    ctx.arc(x1, y, 2 + depth1 * 2, 0, Math.PI * 2);
+    ctx.fillStyle = `rgba(0, 229, 160, ${0.08 + depth1 * 0.12})`;
+    ctx.fill();
+
+    // Draw strand 2 nodes
+    ctx.beginPath();
+    ctx.arc(x2, y, 2 + depth2 * 2, 0, Math.PI * 2);
+    ctx.fillStyle = `rgba(0, 194, 255, ${0.08 + depth2 * 0.12})`;
+    ctx.fill();
+  }
+
+  // Second helix on the left side
+  const cx2 = width * 0.12;
+  const phase2 = -time * 0.015;
+  for (let i = 0; i < totalPoints; i++) {
+    const y = i * verticalSpacing;
+    const angle = i * 0.25 + phase2;
+    const x1 = cx2 + Math.sin(angle) * 30;
+    const x2 = cx2 + Math.sin(angle + Math.PI) * 30;
+    const depth1 = (Math.cos(angle) + 1) / 2;
+    const depth2 = (Math.cos(angle + Math.PI) + 1) / 2;
+
+    if (i % 4 === 0) {
+      ctx.beginPath();
+      ctx.moveTo(x1, y);
+      ctx.lineTo(x2, y);
+      ctx.strokeStyle = `rgba(0, 194, 255, ${0.03 + depth1 * 0.02})`;
+      ctx.lineWidth = 1;
+      ctx.stroke();
+    }
+
+    ctx.beginPath();
+    ctx.arc(x1, y, 1.5 + depth1 * 1.5, 0, Math.PI * 2);
+    ctx.fillStyle = `rgba(0, 194, 255, ${0.05 + depth1 * 0.08})`;
+    ctx.fill();
+
+    ctx.beginPath();
+    ctx.arc(x2, y, 1.5 + depth2 * 1.5, 0, Math.PI * 2);
+    ctx.fillStyle = `rgba(0, 229, 160, ${0.05 + depth2 * 0.08})`;
+    ctx.fill();
+  }
+
+  time++;
+  requestAnimationFrame(drawDNAHelix);
+}
+drawDNAHelix();
+
+// ============== k-mer Tiles ==============
+const kmerData = [
+  { seq: 'ATCG', flagged: false },
+  { seq: 'TCGA', flagged: false },
+  { seq: 'CGAT', flagged: true },
+  { seq: 'GATC', flagged: false },
+  { seq: 'ATCG', flagged: true },
+  { seq: 'TCGA', flagged: false },
+  { seq: 'CGCG', flagged: true },
+  { seq: 'GCGC', flagged: true },
+  { seq: 'ATAT', flagged: true },
+  { seq: 'TATA', flagged: false },
+  { seq: 'GCTA', flagged: false },
+  { seq: 'CTAG', flagged: false },
+];
+const kmerContainer = document.getElementById('kmerVisual');
+kmerData.forEach((k, i) => {
+  const tile = document.createElement('div');
+  tile.className = 'kmer-tile' + (k.flagged ? ' flagged' : '');
+  tile.textContent = k.seq;
+  tile.style.animationDelay = (i * 0.2) + 's';
+  kmerContainer.appendChild(tile);
+});
+
+// ============== Alignment Bars ==============
+const alignData = [
+  { label: 'Chr1', mapped: 92 },
+  { label: 'Chr3', mapped: 67 },
+  { label: 'Chr7', mapped: 15 },
+  { label: 'Chr12', mapped: 84 },
+  { label: '??', mapped: 0 },
+];
+const alignContainer = document.getElementById('alignBars');
+alignData.forEach((a, i) => {
+  const row = document.createElement('div');
+  row.className = 'align-row';
+  const label = document.createElement('span');
+  label.style.width = '32px';
+  label.textContent = a.label;
+  label.style.color = a.mapped === 0 ? 'var(--accent3)' : 'var(--muted)';
+  const barBg = document.createElement('div');
+  barBg.className = 'align-bar-bg';
+  const barFill = document.createElement('div');
+  barFill.className = 'align-bar-fill ' + (a.mapped > 0 ? 'mapped' : 'unmapped');
+  barFill.style.width = Math.max(a.mapped, 8) + '%';
+  barFill.style.animationDelay = (i * 0.3) + 's';
+  barBg.appendChild(barFill);
+  const pct = document.createElement('span');
+  pct.textContent = a.mapped + '%';
+  pct.style.width = '30px';
+  pct.style.textAlign = 'right';
+  pct.style.color = a.mapped === 0 ? 'var(--accent3)' : 'var(--muted)';
+  row.appendChild(label);
+  row.appendChild(barBg);
+  row.appendChild(pct);
+  alignContainer.appendChild(row);
+});
+
+// ============== Genome Map Bars ==============
+const genomeMap = document.getElementById('genomeMap');
+// Generate a realistic-looking genome map with some flagged regions
+const genomePattern = [0,0,0,1,0,0,0,0,0,1,1,0,0,0,0,0,0,1,0,0,0,0,0,0,0,1,1,0,0,0,0,0,0,0,0,1,0,0,0,0];
+genomePattern.forEach((val, i) => {
+  const bar = document.createElement('div');
+  bar.className = 'genome-bar ' + (val ? 'flagged' : 'safe');
+  const h = val ? 18 + Math.random() * 14 : 8 + Math.random() * 10;
+  bar.style.height = h + 'px';
+  bar.style.animationDelay = (i * 0.05) + 's';
+  genomeMap.appendChild(bar);
+});
+
+// ============== Threat Score Counter ==============
+const threatNum = document.getElementById('threatScoreNum');
+let currentScore = 0;
+const targetScore = 78;
+function animateScore() {
+  if (currentScore < targetScore) {
+    currentScore += 1;
+    threatNum.textContent = currentScore;
+    setTimeout(animateScore, 25);
+  }
+}
+// Start after a delay
+setTimeout(animateScore, 1500);
+
+function createNucRain(container) {
+  const bases = ['A', 'T', 'C', 'G', 'U', 'N'];
+  const colors = ['#00e5a0', '#00c2ff', '#ff6b3d', '#e8f0f8'];
+  for (let i = 0; i < 20; i++) {
+    const drop = document.createElement('div');
+    drop.className = 'nuc-drop';
+    drop.textContent = bases[Math.floor(Math.random() * bases.length)];
+    drop.style.left = Math.random() * 30 + 'px';
+    drop.style.color = colors[Math.floor(Math.random() * colors.length)];
+    drop.style.animationDuration = (6 + Math.random() * 10) + 's';
+    drop.style.animationDelay = (Math.random() * 10) + 's';
+    container.appendChild(drop);
+  }
+}
+createNucRain(document.getElementById('nucRainLeft'));
+createNucRain(document.getElementById('nucRainRight'));
+
+// ============== Reduced Motion ==============
+if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+  document.querySelectorAll('*').forEach(el => {
+    el.style.animation = 'none';
+    el.style.transition = 'none';
+  });
+}
+</script>
+
+</body>
+</html>

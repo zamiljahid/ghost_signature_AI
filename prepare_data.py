@@ -7,13 +7,10 @@ Entrez.email = "zamiljahid2002@gmail.com"
 def download_natural_set(accession_list, output_file):
     print(f"Connecting to NCBI to download {len(accession_list)} natural sequences...")
     try:
-        # Fetching in one batch
         handle = Entrez.efetch(db="nucleotide", id=accession_list, rettype="fasta", retmode="text")
         data = handle.read()
-
         with open(output_file, "w") as f:
             f.write(data)
-
         print(f"--- SUCCESS ---")
         print(f"Created '{output_file}'")
         print(f"Total sequences added: {data.count('>')}")
@@ -22,7 +19,7 @@ def download_natural_set(accession_list, output_file):
         print(f"An error occurred: {e}")
 
 
-# --- EXPANDED NATURAL DATASET ---
+# EXPANDED NATURAL DATASET
 # Including ASFV, SARS, Poxviruses, and Phages to provide a 'Natural' baseline
 natural_ids = [
     # ASFV Strains

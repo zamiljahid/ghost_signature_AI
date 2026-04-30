@@ -4,40 +4,26 @@ from sklearn.ensemble import RandomForestClassifier
 from sklearn.feature_extraction.text import TfidfVectorizer
 import joblib
 
+def load_data(file, label, k=8, chunk=500):
+    dataset = []
+    for rec in SeqIO.parse(file, "fasta"):
+        s = "".join(filter(lambda x: x in "ATGCN", str(rec.seq).upper()))
+        for i in range(0, len(s), chunk):
+            frag = s[i:i+chunk]
+            if len(frag) < k: continue
+            kmers = [frag[j:j+k] for j in range(len(frag)-k+1)]
+            dataset.append({"text": " ".join(kmers), "label": label})
+    return dataset
 
-def load_fasta_to_kmers(file_path, label, k=8, chunk_size=500):
-    data = []
-    print(f"Reading and Fragmenting {file_path}...")
-    for record in SeqIO.parse(file_path, "fasta-pearson"):
-        full_seq = "".join(filter(lambda x: x in "ATGCN", str(record.seq).upper()))
-        for i in range(0, len(full_seq), chunk_size):
-            chunk = full_seq[i: i + chunk_size]
-            if len(chunk) < k:
-                continue
-            kmers = [chunk[j:j + k] for j in range(len(chunk) - k + 1)]
-            data.append({"text": " ".join(kmers), "label": label})
-    return data
-print("Loading sequences...")
-synthetic_data = load_fasta_to_kmers("vectors.fasta", 1)
-natural_data = load_fasta_to_kmers("natural_viruses.fasta", 0)
+print("[#] Training AI Engine...")
+data = load_data("vectors.fasta", 1) + load_data("natural_viruses.fasta", 0)
+df = pd.DataFrame(data)
 
-if not synthetic_data or not natural_data:
-    print("Error: One of your input files is empty or not found!")
-    exit()
-df = pd.DataFrame(synthetic_data + natural_data)
-print(f"Vectorizing DNA (Synthetic: {len(synthetic_data)}, Natural: {len(natural_data)})...")
-vectorizer = TfidfVectorizer()
+vectorizer = TfidfVectorizer(ngram_range=(1,1))
 X = vectorizer.fit_transform(df['text'])
-y = df['label']
-print("Teaching the model (Applying balanced weights)...")
-model = RandomForestClassifier(
-    n_estimators=100,
-    class_weight='balanced',
-    random_state=42
-)
-model.fit(X, y)
+model = RandomForestClassifier(n_estimators=100, class_weight='balanced', random_state=42)
+model.fit(X, df['label'])
+
 joblib.dump(model, 'ghost_model.pkl')
 joblib.dump(vectorizer, 'dna_vectorizer.pkl')
-
-print("--- TRAINING COMPLETE ---")
-print("Files 'ghost_model.pkl' and 'dna_vectorizer.pkl' are ready.")
+print("--- Training Ready ---")
