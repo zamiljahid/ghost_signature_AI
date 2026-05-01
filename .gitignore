@@ -12,3 +12,48 @@ __pycache__/
 *.fasta
 *.csv
 database/
+
+# ============================================================
+# GHOST SIGNATURE - .gitignore
+# ============================================================
+
+# --- PyArmor: Original unprotected config (NEVER push this) ---
+branding_config_original.py
+branding_config.py
+
+# --- Keep these (obfuscated versions are safe to push) ---
+# dist/branding_config.py         ← push this
+# dist/pyarmor_runtime_000000/    ← push this
+
+# --- AI Model files (your trained models, keep private) ---
+ghost_model.pkl
+dna_vectorizer.pkl
+
+# --- BLAST & Analysis output files ---
+ghost_signature_report.csv
+Forensic_Analysis_Summary.pdf
+report_*.png
+
+# --- Python cache ---
+*.pyo
+*.pyd
+
+# --- Virtual environment ---
+venv/
+env/
+.env
+*.env
+
+# --- OS junk ---
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# --- IDE files ---
+*.suo
+*.user
+
+# --- Temporary files ---
+*.tmp
+*.log
+*.bak
