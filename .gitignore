@@ -20,7 +20,7 @@ database/
 # --- PyArmor: Original unprotected config (NEVER push this) ---
 branding_config_original.py
 branding_config.py
-
+config.py
 # --- Keep these (obfuscated versions are safe to push) ---
 # dist/branding_config.py         ← push this
 # dist/pyarmor_runtime_000000/    ← push this
