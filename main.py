@@ -9,6 +9,7 @@ from Bio import SeqIO
 from Bio.SeqUtils import gc_fraction
 from fpdf import FPDF
 import datetime
+from config import OWNER_NAME, OWNER_EMAIL, OWNERSHIP_TEXT
 
 
 class GhostSignatureDetector:
@@ -161,6 +162,13 @@ class GhostSignatureDetector:
 
             # --- PAGE 1: EXECUTIVE SUMMARY ---
             pdf.add_page()
+
+            # ✅ FOOTER BRANDING (bottom of every page's content)
+            pdf.set_font("Arial", 'I', 7)
+            pdf.set_text_color(150, 150, 150)
+            pdf.cell(0, 5, f"Developed by: {OWNER_NAME} | {OWNER_EMAIL}", ln=True, align='R')
+            pdf.set_text_color(0, 0, 0)
+
             pdf.set_font("Arial", 'B', 16)
             pdf.set_text_color(40, 40, 40)
             pdf.cell(0, 10, "GHOST SIGNATURE: FORENSIC GENOMIC REPORT", ln=True, align='C')
@@ -219,6 +227,13 @@ class GhostSignatureDetector:
 
             if not data['hits_df'].empty:
                 pdf.add_page()
+
+                # ✅ FOOTER BRANDING on evidence page too
+                pdf.set_font("Arial", 'I', 7)
+                pdf.set_text_color(150, 150, 150)
+                pdf.cell(0, 5, f"Developed by: {OWNER_NAME} | {OWNER_EMAIL}", ln=True, align='R')
+                pdf.set_text_color(0, 0, 0)
+
                 pdf.set_font("Arial", 'B', 12)
                 pdf.cell(0, 10, f"DNA EVIDENCE LOG: Confirmed Lab Homology for {data['id']}", ln=True)
                 pdf.set_font("Courier", '', 8)
@@ -231,15 +246,21 @@ class GhostSignatureDetector:
                     pdf.multi_cell(0, 5, hit_text.encode('latin-1', 'ignore').decode('latin-1'), border='B')
                     if pdf.get_y() > 265: pdf.add_page()
 
+        # ✅ REPLACED: Execution logs section → Legal Notice & Ownership
         pdf.add_page()
-        pdf.set_font("Courier", 'B', 14)
-        pdf.cell(0, 10, "System Execution Logs (Chain of Custody)", ln=True)
+        pdf.set_font("Arial", 'B', 12)
+        pdf.set_text_color(40, 40, 40)
+        pdf.cell(0, 10, "Legal Notice & Ownership", ln=True, align='C')
         pdf.ln(5)
-        pdf.set_font("Courier", '', 8)
-        for line in self.session_logs:
-            clean_line = line.replace('├─', '|--').replace('│', '|').replace('└─', '`—').replace('🔍', 'SCAN:')
-            pdf.multi_cell(0, 5, clean_line.encode('latin-1', 'ignore').decode('latin-1'))
-
+        pdf.set_font("Arial", '', 10)
+        pdf.set_fill_color(240, 240, 240)
+        pdf.multi_cell(0, 8, OWNERSHIP_TEXT, border=1, fill=True)
+        pdf.ln(5)
+        pdf.set_font("Arial", 'I', 8)
+        pdf.set_text_color(120, 120, 120)
+        pdf.cell(0, 5,
+                 f"© {datetime.datetime.now().year} {OWNER_NAME} | {OWNER_EMAIL} | github.com/zamiljahid. All rights reserved.",
+                 ln=True, align='C')
         pdf.output("Forensic_Analysis_Summary.pdf")
         print(f"[#] Precise 3-Tier Report Generated.")
 
