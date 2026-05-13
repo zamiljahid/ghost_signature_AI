@@ -3,21 +3,38 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Ghost Signature Detector — Architecture Diagram</title>
-<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=JetBrains+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<title>Ghost Signature Detector — Complete System Methodology</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@300;400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <style>
   :root {
-    --bg: #060b18;
-    --bg-phase: rgba(10, 20, 40, 0.85);
-    --fg: #e8f0f8;
-    --muted: #5a7a9a;
-    --accent: #00e5a0;
-    --accent2: #00c2ff;
-    --accent3: #ff6b3d;
-    --border: rgba(0, 229, 160, 0.2);
-    --glow: rgba(0, 229, 160, 0.15);
-    --card: rgba(12, 24, 48, 0.9);
+    --bg: #06090f;
+    --bg-card: rgba(12, 20, 32, 0.85);
+    --bg-card-hover: rgba(16, 28, 44, 0.95);
+    --bg-card-alt: rgba(10, 16, 26, 0.9);
+    --fg: #e2ecf5;
+    --fg-secondary: #8fa8c0;
+    --muted: #4e6a84;
+    --border: rgba(0, 229, 160, 0.12);
+    --border-light: rgba(0, 229, 160, 0.06);
+    --border-subtle: rgba(255,255,255,0.05);
+    --primary: #00e5a0;
+    --primary-dim: rgba(0, 229, 160, 0.15);
+    --primary-glow: rgba(0, 229, 160, 0.08);
+    --secondary: #00b4d8;
+    --secondary-dim: rgba(0, 180, 216, 0.15);
+    --accent-red: #ff4757;
+    --accent-red-dim: rgba(255, 71, 87, 0.12);
+    --accent-orange: #ff9f43;
+    --accent-orange-dim: rgba(255, 159, 67, 0.12);
+    --accent-gold: #feca57;
+    --accent-gold-dim: rgba(254, 202, 87, 0.10);
+    --shadow-sm: 0 2px 8px rgba(0,0,0,0.3);
+    --shadow-md: 0 4px 20px rgba(0,0,0,0.4);
+    --shadow-lg: 0 8px 40px rgba(0,0,0,0.5);
+    --radius: 12px;
+    --radius-lg: 16px;
   }
 
   * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -27,1545 +44,1668 @@
     background: var(--bg);
     color: var(--fg);
     overflow-x: hidden;
-    min-height: 100vh;
+    line-height: 1.6;
   }
 
-  /* Background DNA Canvas */
-  #bgCanvas {
+  /* Layered gradient background */
+  .bg-layer {
     position: fixed;
-    top: 0; left: 0;
-    width: 100%; height: 100%;
+    inset: 0;
     z-index: 0;
     pointer-events: none;
   }
+  .bg-gradient-1 {
+    background:
+      radial-gradient(ellipse 80% 60% at 15% 10%, rgba(0,229,160,0.06) 0%, transparent 60%),
+      radial-gradient(ellipse 70% 50% at 85% 85%, rgba(0,180,216,0.05) 0%, transparent 55%),
+      radial-gradient(ellipse 50% 40% at 50% 50%, rgba(255,71,87,0.02) 0%, transparent 50%),
+      linear-gradient(175deg, #06090f 0%, #0a1020 40%, #08101a 70%, #06090f 100%);
+  }
+  .bg-gradient-2 {
+    background-image:
+      radial-gradient(circle at 20% 30%, rgba(0,229,160,0.03) 0%, transparent 40%),
+      radial-gradient(circle at 80% 60%, rgba(0,180,216,0.03) 0%, transparent 35%);
+    animation: bgDrift 20s ease-in-out infinite alternate;
+  }
+  @keyframes bgDrift {
+    0% { transform: translate(0, 0) scale(1); }
+    100% { transform: translate(-20px, 10px) scale(1.05); }
+  }
+  /* Dot grid overlay */
+  .bg-dots {
+    background-image: radial-gradient(circle, rgba(0,229,160,0.06) 0.5px, transparent 0.5px);
+    background-size: 28px 28px;
+    opacity: 0.7;
+  }
+  /* Scan line */
+  .bg-scanline {
+    background: repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 3px,
+      rgba(0,229,160,0.008) 3px,
+      rgba(0,229,160,0.008) 4px
+    );
+  }
+
+  /* Floating DNA deco */
+  .dna-deco {
+    position: fixed;
+    z-index: 0;
+    pointer-events: none;
+    opacity: 0.06;
+  }
+  .dna-deco-1 { top: 3%; right: 2%; width: 220px; }
+  .dna-deco-2 { bottom: 8%; left: 1%; width: 180px; transform: rotate(25deg); }
 
   /* Ambient glow blobs */
-  .ambient-blob {
+  .glow-blob {
     position: fixed;
     border-radius: 50%;
-    filter: blur(120px);
+    filter: blur(100px);
     pointer-events: none;
     z-index: 0;
   }
-  .blob-1 { width: 500px; height: 500px; background: rgba(0,229,160,0.06); top: -100px; left: -100px; }
-  .blob-2 { width: 400px; height: 400px; background: rgba(0,194,255,0.05); bottom: 10%; right: -50px; }
-  .blob-3 { width: 350px; height: 350px; background: rgba(255,107,61,0.04); top: 50%; left: 30%; }
+  .glow-1 { width: 500px; height: 500px; background: rgba(0,229,160,0.04); top: -150px; left: -100px; animation: blobFloat 25s ease-in-out infinite alternate; }
+  .glow-2 { width: 400px; height: 400px; background: rgba(0,180,216,0.03); bottom: -100px; right: -50px; animation: blobFloat 30s ease-in-out infinite alternate-reverse; }
+  .glow-3 { width: 300px; height: 300px; background: rgba(255,71,87,0.025); top: 40%; left: 60%; animation: blobFloat 22s ease-in-out infinite alternate; }
+  @keyframes blobFloat {
+    0% { transform: translate(0,0) scale(1); }
+    50% { transform: translate(30px,-20px) scale(1.1); }
+    100% { transform: translate(-15px,25px) scale(0.95); }
+  }
 
-  .diagram-wrapper {
+  /* Export button */
+  .export-btn {
+    position: fixed;
+    bottom: 28px;
+    right: 28px;
+    z-index: 1000;
+    background: linear-gradient(135deg, var(--primary), #00b880);
+    color: #06090f;
+    border: none;
+    border-radius: 12px;
+    padding: 14px 22px;
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    box-shadow: 0 4px 24px rgba(0,229,160,0.3), inset 0 1px 0 rgba(255,255,255,0.15);
+    transition: all 0.3s;
+  }
+  .export-btn:hover { transform: translateY(-2px); box-shadow: 0 6px 32px rgba(0,229,160,0.4), inset 0 1px 0 rgba(255,255,255,0.2); }
+  .export-btn:active { transform: translateY(0); }
+  .export-btn.exporting { opacity: 0.7; pointer-events: none; }
+
+  /* Poster */
+  .poster {
     position: relative;
     z-index: 1;
-    max-width: 1100px;
+    max-width: 1080px;
     margin: 0 auto;
-    padding: 40px 20px 80px;
+    padding: 0 24px 80px;
   }
 
-  /* Header */
-  .diagram-header {
+  /* ===== HEADER ===== */
+  .poster-header {
     text-align: center;
-    margin-bottom: 50px;
+    padding: 60px 0 48px;
+    position: relative;
   }
-  .diagram-header h1 {
-    font-size: clamp(28px, 4vw, 48px);
-    font-weight: 700;
-    letter-spacing: -1px;
-    background: linear-gradient(135deg, var(--accent), var(--accent2));
+  .header-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--primary-dim);
+    color: var(--primary);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 2.5px;
+    text-transform: uppercase;
+    padding: 8px 18px;
+    border-radius: 100px;
+    border: 1px solid var(--border);
+    margin-bottom: 24px;
+    backdrop-filter: blur(10px);
+  }
+  .poster-title {
+    font-size: clamp(30px, 5vw, 50px);
+    font-weight: 800;
+    letter-spacing: -1.5px;
+    line-height: 1.1;
+    color: var(--fg);
+    margin-bottom: 16px;
+  }
+  .poster-title span {
+    background: linear-gradient(135deg, var(--primary), var(--secondary));
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
-    margin-bottom: 12px;
   }
-  .diagram-header p {
-    color: var(--muted);
+  .poster-subtitle {
     font-size: 15px;
-    max-width: 600px;
+    color: var(--fg-secondary);
+    max-width: 700px;
     margin: 0 auto;
-    line-height: 1.6;
+    line-height: 1.7;
   }
-  .header-dna-icon {
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    margin-bottom: 16px;
-    color: var(--accent);
-    font-size: 13px;
-    font-family: 'JetBrains Mono', monospace;
-    text-transform: uppercase;
-    letter-spacing: 3px;
+  .header-dna-svg {
+    margin: 24px auto 0;
+    display: block;
+    opacity: 0.25;
   }
-
-  /* Phase Container */
-  .phase-container {
-    position: relative;
-    border: 1px solid var(--border);
-    border-radius: 16px;
-    background: var(--bg-phase);
-    backdrop-filter: blur(20px);
-    padding: 28px 28px 24px;
-    margin-bottom: 0;
-    overflow: visible;
-  }
-  .phase-container::before {
-    content: '';
-    position: absolute;
-    inset: -1px;
-    border-radius: 16px;
-    padding: 1px;
-    background: linear-gradient(135deg, rgba(0,229,160,0.3), transparent 50%, rgba(0,194,255,0.2));
-    -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-    -webkit-mask-composite: xor;
-    mask-composite: exclude;
-    pointer-events: none;
+  .header-divider {
+    height: 2px;
+    background: linear-gradient(90deg, transparent, var(--primary), var(--secondary), transparent);
+    border-radius: 2px;
+    margin: 0 auto;
+    max-width: 400px;
+    opacity: 0.5;
+    box-shadow: 0 0 20px rgba(0,229,160,0.15);
   }
 
-  .phase-label {
-    display: inline-flex;
+  /* ===== SECTIONS ===== */
+  .method-section {
+    margin-bottom: 48px;
+    animation: fadeUp 0.6s ease both;
+  }
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(24px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .section-header {
+    display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 14px;
     margin-bottom: 20px;
+    padding-bottom: 14px;
+    border-bottom: 1px solid var(--border-light);
   }
-  .phase-number {
-    width: 36px; height: 36px;
+  .section-number {
+    width: 40px; height: 40px;
     border-radius: 10px;
     display: flex; align-items: center; justify-content: center;
     font-weight: 700;
-    font-size: 15px;
+    font-size: 16px;
     color: var(--bg);
     flex-shrink: 0;
-  }
-  .phase-1 .phase-number { background: var(--accent); }
-  .phase-2 .phase-number { background: var(--accent2); }
-  .phase-3 .phase-number { background: linear-gradient(135deg, var(--accent), var(--accent2)); }
-  .phase-4 .phase-number { background: var(--accent3); }
-
-  .phase-title {
-    font-size: 18px;
-    font-weight: 600;
-    letter-spacing: -0.3px;
-  }
-  .phase-subtitle {
-    font-size: 12px;
-    color: var(--muted);
-    font-family: 'JetBrains Mono', monospace;
-  }
-
-  /* IO Nodes */
-  .io-row {
-    display: flex;
-    align-items: center;
-    gap: 16px;
-    flex-wrap: wrap;
-  }
-  .io-node {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    background: var(--card);
-    border: 1px solid rgba(255,255,255,0.06);
-    border-radius: 10px;
-    padding: 12px 16px;
-    min-width: 200px;
-    flex: 1;
-    transition: border-color 0.3s, transform 0.3s;
-  }
-  .io-node:hover {
-    border-color: var(--border);
-    transform: translateY(-2px);
-  }
-  .io-icon {
-    width: 40px; height: 40px;
-    border-radius: 8px;
-    display: flex; align-items: center; justify-content: center;
-    font-size: 18px;
-    flex-shrink: 0;
-  }
-  .io-icon.input-icon { background: rgba(0,229,160,0.12); color: var(--accent); }
-  .io-icon.output-icon { background: rgba(0,194,255,0.12); color: var(--accent2); }
-  .io-icon.threat-icon { background: rgba(255,107,61,0.12); color: var(--accent3); }
-
-  .io-text-label {
-    font-size: 10px;
-    text-transform: uppercase;
-    letter-spacing: 1.5px;
-    color: var(--muted);
-    font-family: 'JetBrains Mono', monospace;
-    margin-bottom: 2px;
-  }
-  .io-text-value {
-    font-size: 13px;
-    font-weight: 500;
-  }
-
-  /* Process Blocks */
-  .process-row {
-    display: flex;
-    gap: 14px;
-    margin-top: 16px;
-    flex-wrap: wrap;
-  }
-  .process-block {
-    flex: 1;
-    min-width: 220px;
-    background: linear-gradient(135deg, rgba(0,229,160,0.04), rgba(0,194,255,0.03));
-    border: 1px solid rgba(0,229,160,0.1);
-    border-radius: 12px;
-    padding: 18px;
     position: relative;
     overflow: hidden;
-    transition: border-color 0.3s, transform 0.3s;
   }
-  .process-block:hover {
-    border-color: rgba(0,229,160,0.3);
-    transform: translateY(-2px);
+  .section-number::after {
+    content: '';
+    position: absolute;
+    top: -50%; left: -50%;
+    width: 200%; height: 200%;
+    background: linear-gradient(135deg, rgba(255,255,255,0.2), transparent);
   }
-  .process-block::after {
+  .sn-green { background: linear-gradient(135deg, #00e5a0, #00b880); box-shadow: 0 2px 12px rgba(0,229,160,0.3); }
+  .sn-blue { background: linear-gradient(135deg, #00b4d8, #0090b0); box-shadow: 0 2px 12px rgba(0,180,216,0.3); }
+  .sn-teal { background: linear-gradient(135deg, #00e5a0, #00b4d8); box-shadow: 0 2px 12px rgba(0,200,180,0.3); }
+  .sn-red { background: linear-gradient(135deg, #ff4757, #e8384f); box-shadow: 0 2px 12px rgba(255,71,87,0.3); }
+  .sn-orange { background: linear-gradient(135deg, #ff9f43, #e88a30); box-shadow: 0 2px 12px rgba(255,159,67,0.3); }
+  .sn-gold { background: linear-gradient(135deg, #feca57, #e0b040); box-shadow: 0 2px 12px rgba(254,202,87,0.3); }
+
+  .section-title { font-size: 22px; font-weight: 700; letter-spacing: -0.5px; }
+  .section-tag { font-size: 10px; font-family: 'JetBrains Mono', monospace; color: var(--muted); text-transform: uppercase; letter-spacing: 1.5px; }
+
+  /* ===== CARDS ===== */
+  .card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 24px;
+    box-shadow: var(--shadow-sm);
+    transition: box-shadow 0.3s, transform 0.3s, border-color 0.3s;
+    position: relative;
+    overflow: hidden;
+    backdrop-filter: blur(12px);
+  }
+  .card:hover {
+    box-shadow: var(--shadow-md);
+    transform: translateY(-1px);
+    border-color: rgba(0,229,160,0.2);
+  }
+  .card-accent-top {
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+  }
+  .cat-green { background: linear-gradient(90deg, var(--primary), #00b880); box-shadow: 0 0 12px rgba(0,229,160,0.3); }
+  .cat-blue { background: linear-gradient(90deg, var(--secondary), #0090b0); box-shadow: 0 0 12px rgba(0,180,216,0.3); }
+  .cat-red { background: linear-gradient(90deg, var(--accent-red), #e8384f); box-shadow: 0 0 12px rgba(255,71,87,0.3); }
+  .cat-orange { background: linear-gradient(90deg, var(--accent-orange), #e88a30); box-shadow: 0 0 12px rgba(255,159,67,0.3); }
+  .cat-gold { background: linear-gradient(90deg, var(--accent-gold), #e0b040); box-shadow: 0 0 12px rgba(254,202,87,0.3); }
+  .cat-teal { background: linear-gradient(90deg, var(--primary), var(--secondary)); box-shadow: 0 0 12px rgba(0,200,180,0.3); }
+
+  /* Shimmer sweep on card */
+  .card::before {
     content: '';
     position: absolute;
     top: 0; left: -100%;
     width: 50%; height: 100%;
-    background: linear-gradient(90deg, transparent, rgba(0,229,160,0.05), transparent);
-    animation: shimmer 4s ease-in-out infinite;
+    background: linear-gradient(90deg, transparent, rgba(0,229,160,0.02), transparent);
+    animation: cardShimmer 6s ease-in-out infinite;
+    pointer-events: none;
   }
-  @keyframes shimmer {
+  @keyframes cardShimmer {
     0% { left: -100%; }
-    50% { left: 150%; }
+    40% { left: 150%; }
     100% { left: 150%; }
   }
-  .process-block-header {
-    display: flex; align-items: center; gap: 8px;
-    margin-bottom: 10px;
+
+  .card-title {
+    font-size: 15px;
+    font-weight: 700;
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
   }
-  .process-block-icon {
-    width: 28px; height: 28px;
-    border-radius: 6px;
-    display: flex; align-items: center; justify-content: center;
-    font-size: 12px;
-    background: rgba(0,229,160,0.1);
-    color: var(--accent);
-  }
-  .process-block-title {
+  .card-body {
     font-size: 13px;
-    font-weight: 600;
-  }
-  .process-block-desc {
-    font-size: 12px;
-    color: var(--muted);
-    line-height: 1.6;
+    color: var(--fg-secondary);
+    line-height: 1.7;
   }
 
-  /* Parallel tracks for Phase 2 */
-  .parallel-tracks {
-    display: grid;
-    grid-template-columns: 1fr auto 1fr;
-    gap: 0;
-    margin-top: 16px;
-    align-items: stretch;
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; }
+  @media (max-width: 768px) {
+    .grid-2, .grid-3 { grid-template-columns: 1fr; }
   }
-  .parallel-track {
-    background: var(--card);
-    border: 1px solid rgba(255,255,255,0.06);
-    border-radius: 12px;
-    padding: 20px;
+
+  /* ===== CODE BLOCKS ===== */
+  .code-block {
+    background: linear-gradient(135deg, #0a0f18, #0d1420);
+    color: #a0b8d0;
+    border-radius: 10px;
+    padding: 16px 20px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    line-height: 1.8;
+    overflow-x: auto;
+    border: 1px solid rgba(0,229,160,0.08);
     position: relative;
-    overflow: hidden;
-    transition: border-color 0.3s, transform 0.3s;
+    box-shadow: inset 0 1px 3px rgba(0,0,0,0.3);
   }
-  .parallel-track:hover {
-    border-color: rgba(0,194,255,0.3);
-    transform: translateY(-2px);
-  }
-  .parallel-track::after {
-    content: '';
+  .code-block .kw { color: #00e5a0; }
+  .code-block .fn { color: #00b4d8; }
+  .code-block .str { color: #feca57; }
+  .code-block .cm { color: #4e6a84; font-style: italic; }
+  .code-block .num { color: #ff9f43; }
+  .code-label {
     position: absolute;
-    top: 0; left: -100%;
-    width: 50%; height: 100%;
-    background: linear-gradient(90deg, transparent, rgba(0,194,255,0.04), transparent);
-    animation: shimmer 5s ease-in-out infinite;
+    top: 8px; right: 12px;
+    font-size: 9px;
+    color: #4e6a84;
+    letter-spacing: 1px;
+    text-transform: uppercase;
   }
-  .track-label {
+
+  /* ===== TABLES ===== */
+  .styled-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+    border-radius: 10px;
+    overflow: hidden;
+    border: 1px solid var(--border);
+  }
+  .styled-table thead {
+    background: linear-gradient(135deg, rgba(0,229,160,0.15), rgba(0,180,216,0.12));
+    color: var(--primary);
+  }
+  .styled-table th {
+    padding: 12px 16px;
+    text-align: left;
+    font-weight: 600;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+  .styled-table td {
+    padding: 10px 16px;
+    border-bottom: 1px solid var(--border-light);
+    color: var(--fg-secondary);
+  }
+  .styled-table tbody tr:last-child td { border-bottom: none; }
+  .styled-table tbody tr:nth-child(even) { background: rgba(0,229,160,0.02); }
+  .styled-table tbody tr:hover { background: rgba(0,229,160,0.05); }
+
+  /* ===== BADGES ===== */
+  .badge {
     display: inline-flex;
     align-items: center;
-    gap: 6px;
-    font-size: 11px;
-    font-family: 'JetBrains Mono', monospace;
-    text-transform: uppercase;
-    letter-spacing: 1.5px;
+    gap: 5px;
     padding: 4px 10px;
     border-radius: 6px;
-    margin-bottom: 14px;
-  }
-  .track-a .track-label { background: rgba(0,229,160,0.1); color: var(--accent); }
-  .track-b .track-label { background: rgba(0,194,255,0.1); color: var(--accent2); }
-
-  .track-title {
-    font-size: 15px;
+    font-size: 10px;
     font-weight: 600;
-    margin-bottom: 8px;
-  }
-  .track-desc {
-    font-size: 12px;
-    color: var(--muted);
-    line-height: 1.6;
-    margin-bottom: 14px;
-  }
-
-  /* k-mer visualization */
-  .kmer-visual {
-    display: flex;
-    gap: 3px;
-    flex-wrap: wrap;
-    margin-top: 10px;
-  }
-  .kmer-tile {
-    padding: 4px 8px;
-    border-radius: 4px;
     font-family: 'JetBrains Mono', monospace;
-    font-size: 11px;
-    font-weight: 500;
-    animation: kmerPulse 3s ease-in-out infinite;
-  }
-  .kmer-tile:nth-child(odd) { background: rgba(0,229,160,0.12); color: var(--accent); }
-  .kmer-tile:nth-child(even) { background: rgba(0,199,255,0.1); color: var(--accent2); }
-  .kmer-tile.flagged { background: rgba(255,107,61,0.2); color: var(--accent3); animation: kmerFlag 1.5s ease-in-out infinite; }
-
-  @keyframes kmerPulse {
-    0%, 100% { opacity: 0.7; }
-    50% { opacity: 1; }
-  }
-  @keyframes kmerFlag {
-    0%, 100% { box-shadow: 0 0 0 0 rgba(255,107,61,0); }
-    50% { box-shadow: 0 0 8px 2px rgba(255,107,61,0.3); }
-  }
-
-  /* Alignment bars */
-  .align-bars {
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-    margin-top: 10px;
-  }
-  .align-row {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    font-size: 10px;
-    font-family: 'JetBrains Mono', monospace;
-    color: var(--muted);
-  }
-  .align-bar-bg {
-    flex: 1;
-    height: 8px;
-    background: rgba(255,255,255,0.04);
-    border-radius: 4px;
-    overflow: hidden;
-    position: relative;
-  }
-  .align-bar-fill {
-    height: 100%;
-    border-radius: 4px;
-    animation: alignGrow 2s ease-out forwards;
-    transform-origin: left;
-  }
-  .align-bar-fill.mapped { background: linear-gradient(90deg, var(--accent), var(--accent2)); }
-  .align-bar-fill.unmapped { background: var(--accent3); }
-  @keyframes alignGrow {
-    0% { width: 0%; }
-  }
-
-  /* Parallel divider */
-  .parallel-divider {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    padding: 0 12px;
-    position: relative;
-  }
-  .divider-line {
-    width: 2px;
-    flex: 1;
-    background: linear-gradient(to bottom, transparent, var(--border), transparent);
-    position: relative;
-  }
-  .divider-dots {
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-    align-items: center;
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-  }
-  .divider-dot {
-    width: 6px; height: 6px;
-    border-radius: 50%;
-    background: var(--accent);
-    animation: dotPulse 2s ease-in-out infinite;
-  }
-  .divider-dot:nth-child(2) { animation-delay: 0.3s; background: var(--accent2); }
-  .divider-dot:nth-child(3) { animation-delay: 0.6s; background: var(--accent); }
-  @keyframes dotPulse {
-    0%, 100% { opacity: 0.3; transform: scale(0.8); }
-    50% { opacity: 1; transform: scale(1.2); }
-  }
-
-  /* Output node for Phase 2 */
-  .phase-output-features {
-    display: flex;
-    gap: 10px;
-    margin-top: 16px;
-    flex-wrap: wrap;
-  }
-  .feature-tag {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    padding: 8px 14px;
-    border-radius: 8px;
-    font-size: 12px;
-    font-weight: 500;
-    background: var(--card);
-    border: 1px solid rgba(255,255,255,0.06);
-    animation: tagFloat 4s ease-in-out infinite;
-  }
-  .feature-tag:nth-child(1) { animation-delay: 0s; }
-  .feature-tag:nth-child(2) { animation-delay: 0.5s; }
-  .feature-tag:nth-child(3) { animation-delay: 1s; }
-  @keyframes tagFloat {
-    0%, 100% { transform: translateY(0); }
-    50% { transform: translateY(-3px); }
-  }
-  .feature-dot {
-    width: 8px; height: 8px;
-    border-radius: 50%;
-    flex-shrink: 0;
-  }
-
-  /* Classification visual for Phase 3 */
-  .classifier-visual {
-    margin-top: 18px;
-    background: var(--card);
-    border: 1px solid rgba(255,255,255,0.06);
-    border-radius: 12px;
-    padding: 20px;
-    position: relative;
-    overflow: hidden;
-  }
-  .classifier-visual::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background: radial-gradient(circle at 30% 50%, rgba(0,229,160,0.05), transparent 60%),
-                radial-gradient(circle at 70% 50%, rgba(255,107,61,0.05), transparent 60%);
-    pointer-events: none;
-  }
-  .classifier-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin-bottom: 16px;
-    position: relative;
-  }
-  .classifier-title {
-    font-size: 14px;
-    font-weight: 600;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-  }
-  .classifier-badge {
-    font-size: 10px;
-    font-family: 'JetBrains Mono', monospace;
-    padding: 3px 8px;
-    border-radius: 4px;
-    background: rgba(0,229,160,0.12);
-    color: var(--accent);
-  }
-
-  /* Decision tree animation */
-  .decision-tree {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 0;
-    position: relative;
-    min-height: 120px;
-  }
-  .tree-node {
-    text-align: center;
-    position: relative;
-  }
-  .tree-node-circle {
-    width: 50px; height: 50px;
-    border-radius: 50%;
-    display: flex; align-items: center; justify-content: center;
-    margin: 0 auto 6px;
-    font-size: 16px;
-    position: relative;
-  }
-  .tree-node-circle.root {
-    background: linear-gradient(135deg, rgba(0,229,160,0.15), rgba(0,194,255,0.15));
-    border: 2px solid var(--accent);
-    animation: nodeGlow 3s ease-in-out infinite;
-  }
-  .tree-node-circle.natural {
-    background: rgba(0,229,160,0.1);
-    border: 2px solid rgba(0,229,160,0.4);
-  }
-  .tree-node-circle.synthetic {
-    background: rgba(255,107,61,0.1);
-    border: 2px solid rgba(255,107,61,0.4);
-    animation: syntheticPulse 2s ease-in-out infinite;
-  }
-  @keyframes nodeGlow {
-    0%, 100% { box-shadow: 0 0 10px rgba(0,229,160,0.2); }
-    50% { box-shadow: 0 0 25px rgba(0,229,160,0.4); }
-  }
-  @keyframes syntheticPulse {
-    0%, 100% { box-shadow: 0 0 5px rgba(255,107,61,0.2); }
-    50% { box-shadow: 0 0 20px rgba(255,107,61,0.5); }
-  }
-  .tree-node-label {
-    font-size: 10px;
-    font-family: 'JetBrains Mono', monospace;
-    color: var(--muted);
-  }
-
-  .tree-branch {
-    width: 60px;
-    height: 2px;
-    position: relative;
-    align-self: center;
-    margin-top: -20px;
-  }
-  .tree-branch-line {
-    width: 100%;
-    height: 2px;
-    background: var(--border);
-    position: relative;
-  }
-  .tree-branch-line::after {
-    content: '';
-    position: absolute;
-    top: -2px; left: 0;
-    width: 12px; height: 6px;
-    border-radius: 3px;
-    animation: branchFlow 2s linear infinite;
-  }
-  .tree-branch.to-natural .tree-branch-line::after { background: var(--accent); }
-  .tree-branch.to-synthetic .tree-branch-line::after { background: var(--accent3); }
-  @keyframes branchFlow {
-    0% { left: -12px; }
-    100% { left: 100%; }
-  }
-  .tree-branch-label {
-    position: absolute;
-    top: -18px;
-    left: 50%;
-    transform: translateX(-50%);
-    font-size: 9px;
-    font-family: 'JetBrains Mono', monospace;
-    white-space: nowrap;
-  }
-  .tree-branch.to-natural .tree-branch-label { color: var(--accent); }
-  .tree-branch.to-synthetic .tree-branch-label { color: var(--accent3); }
-
-  /* Confidence meter */
-  .confidence-meter {
-    display: flex;
-    align-items: center;
-    gap: 16px;
-    margin-top: 18px;
-    padding: 16px;
-    background: rgba(255,107,61,0.05);
-    border: 1px solid rgba(255,107,61,0.15);
-    border-radius: 10px;
-  }
-  .meter-circle {
-    width: 64px; height: 64px;
-    border-radius: 50%;
-    position: relative;
-    flex-shrink: 0;
-  }
-  .meter-circle svg {
-    width: 100%; height: 100%;
-    transform: rotate(-90deg);
-  }
-  .meter-circle-bg {
-    fill: none;
-    stroke: rgba(255,107,61,0.15);
-    stroke-width: 5;
-  }
-  .meter-circle-fill {
-    fill: none;
-    stroke: var(--accent3);
-    stroke-width: 5;
-    stroke-linecap: round;
-    stroke-dasharray: 163;
-    stroke-dashoffset: 163;
-    animation: meterFill 3s ease-out 1s forwards;
-  }
-  @keyframes meterFill {
-    to { stroke-dashoffset: 30; }
-  }
-  .meter-value {
-    position: absolute;
-    inset: 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 16px;
-    font-weight: 700;
-    color: var(--accent3);
-  }
-  .meter-info {
-    flex: 1;
-  }
-  .meter-title {
-    font-size: 13px;
-    font-weight: 600;
-    margin-bottom: 4px;
-  }
-  .meter-desc {
-    font-size: 11px;
-    color: var(--muted);
-    line-height: 1.5;
-  }
-
-  /* Phase 4 Report visual */
-  .report-visual {
-    margin-top: 18px;
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 14px;
-  }
-  .report-card {
-    background: var(--card);
-    border: 1px solid rgba(255,255,255,0.06);
-    border-radius: 12px;
-    padding: 18px;
-    position: relative;
-    overflow: hidden;
-    transition: transform 0.3s, border-color 0.3s;
-  }
-  .report-card:hover {
-    transform: translateY(-2px);
-    border-color: var(--border);
-  }
-  .report-card-title {
-    font-size: 12px;
-    color: var(--muted);
-    margin-bottom: 12px;
-    display: flex;
-    align-items: center;
-    gap: 6px;
-  }
-  .report-card-title i { color: var(--accent3); }
-
-  /* Genome map visualization */
-  .genome-map {
-    display: flex;
-    gap: 2px;
-    height: 32px;
-    align-items: end;
-  }
-  .genome-bar {
-    flex: 1;
-    border-radius: 2px 2px 0 0;
-    animation: barGrow 2s ease-out forwards;
-    transform-origin: bottom;
-    transform: scaleY(0);
-  }
-  .genome-bar.safe { background: var(--accent); opacity: 0.3; }
-  .genome-bar.flagged { background: var(--accent3); opacity: 0.8; animation: barGrow 2s ease-out forwards, flaggedPulse 2s ease-in-out 2s infinite; }
-  @keyframes barGrow {
-    to { transform: scaleY(1); }
-  }
-  @keyframes flaggedPulse {
-    0%, 100% { opacity: 0.6; }
-    50% { opacity: 1; }
-  }
-  .genome-legend {
-    display: flex;
-    gap: 16px;
-    margin-top: 10px;
-    font-size: 10px;
-    color: var(--muted);
-    font-family: 'JetBrains Mono', monospace;
-  }
-  .legend-dot {
-    width: 8px; height: 8px;
-    border-radius: 2px;
-    display: inline-block;
-    margin-right: 4px;
-    vertical-align: middle;
-  }
-
-  /* Threat score display */
-  .threat-display {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-  }
-  .threat-level {
-    flex: 1;
-  }
-  .threat-level-row {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    margin-bottom: 8px;
-  }
-  .threat-level-label {
-    font-size: 11px;
-    color: var(--muted);
-    width: 60px;
-    flex-shrink: 0;
-    font-family: 'JetBrains Mono', monospace;
-  }
-  .threat-level-bar-bg {
-    flex: 1;
-    height: 6px;
-    background: rgba(255,255,255,0.04);
-    border-radius: 3px;
-    overflow: hidden;
-  }
-  .threat-level-bar-fill {
-    height: 100%;
-    border-radius: 3px;
-    transform-origin: left;
-    animation: threatGrow 2s ease-out 0.5s forwards;
-    transform: scaleX(0);
-  }
-  @keyframes threatGrow {
-    to { transform: scaleX(1); }
-  }
-
-  .threat-score-big {
-    text-align: center;
-    padding: 12px;
-  }
-  .threat-score-number {
-    font-size: 36px;
-    font-weight: 700;
-    color: var(--accent3);
-    line-height: 1;
-    animation: scoreCount 2s ease-out forwards;
-  }
-  .threat-score-label {
-    font-size: 10px;
-    color: var(--muted);
+    letter-spacing: 0.5px;
     text-transform: uppercase;
-    letter-spacing: 1.5px;
-    font-family: 'JetBrains Mono', monospace;
-    margin-top: 4px;
   }
+  .badge-green { background: var(--primary-dim); color: var(--primary); border: 1px solid rgba(0,229,160,0.15); }
+  .badge-blue { background: var(--secondary-dim); color: var(--secondary); border: 1px solid rgba(0,180,216,0.15); }
+  .badge-red { background: var(--accent-red-dim); color: var(--accent-red); border: 1px solid rgba(255,71,87,0.15); }
+  .badge-orange { background: var(--accent-orange-dim); color: var(--accent-orange); border: 1px solid rgba(255,159,67,0.15); }
+  .badge-gold { background: var(--accent-gold-dim); color: var(--accent-gold); border: 1px solid rgba(254,202,87,0.15); }
 
-  /* Flow connectors between phases */
-  .flow-connector {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    padding: 8px 0;
-    position: relative;
-    height: 60px;
-  }
-  .flow-line {
-    width: 2px;
-    flex: 1;
-    background: linear-gradient(to bottom, var(--accent), var(--accent2));
-    position: relative;
-    overflow: hidden;
-    border-radius: 1px;
-  }
-  .flow-line::after {
-    content: '';
-    position: absolute;
-    top: -20px;
-    left: -3px;
-    width: 8px;
-    height: 20px;
-    border-radius: 4px;
-    background: var(--accent);
-    animation: flowDown 1.5s linear infinite;
-    box-shadow: 0 0 10px var(--accent), 0 0 20px rgba(0,229,160,0.3);
-  }
-  @keyframes flowDown {
-    0% { top: -20px; }
-    100% { top: 100%; }
-  }
-  .flow-arrow {
-    width: 0; height: 0;
-    border-left: 8px solid transparent;
-    border-right: 8px solid transparent;
-    border-top: 10px solid var(--accent2);
-    filter: drop-shadow(0 0 6px rgba(0,194,255,0.4));
-  }
-  .flow-label {
-    position: absolute;
-    right: 0;
-    top: 50%;
-    transform: translateY(-50%);
-    font-size: 9px;
-    font-family: 'JetBrains Mono', monospace;
-    color: var(--muted);
-    background: var(--bg);
-    padding: 2px 8px;
-    border-radius: 4px;
-    border: 1px solid rgba(255,255,255,0.06);
-  }
-
-  /* Split flow connector for Phase 1 -> Phase 2 */
-  .split-connector {
-    height: 50px;
-    position: relative;
-    display: flex;
-    justify-content: center;
-  }
-  .split-line-container {
-    position: absolute;
-    inset: 0;
-  }
-  .split-svg {
-    width: 100%;
-    height: 100%;
-    overflow: visible;
-  }
-  .split-path {
-    fill: none;
-    stroke-width: 2;
-    stroke-linecap: round;
-  }
-  .split-path-left {
-    stroke: var(--accent);
-    stroke-dasharray: 6 4;
-    animation: dashFlow 1s linear infinite;
-  }
-  .split-path-right {
-    stroke: var(--accent2);
-    stroke-dasharray: 6 4;
-    animation: dashFlow 1s linear infinite;
-  }
-  @keyframes dashFlow {
-    to { stroke-dashoffset: -20; }
-  }
-
-  /* Merge connector for Phase 2 -> Phase 3 */
-  .merge-connector {
-    height: 50px;
-    position: relative;
-    display: flex;
-    justify-content: center;
-  }
-
-  /* Floating DNA elements */
-  .floating-dna {
-    position: absolute;
-    pointer-events: none;
-    opacity: 0.08;
-    font-size: 60px;
-    animation: dnaFloat 8s ease-in-out infinite;
-  }
-  .floating-dna.fd1 { top: 10%; right: -20px; animation-delay: 0s; }
-  .floating-dna.fd2 { bottom: 20%; left: -30px; animation-delay: 2s; font-size: 45px; }
-  @keyframes dnaFloat {
-    0%, 100% { transform: translateY(0) rotate(0deg); }
-    50% { transform: translateY(-15px) rotate(5deg); }
-  }
-
-  /* Report dashboard final */
-  .final-report-card {
-    margin-top: 18px;
-    background: linear-gradient(135deg, rgba(255,107,61,0.06), rgba(0,229,160,0.04));
-    border: 1px solid rgba(255,107,61,0.2);
-    border-radius: 14px;
-    padding: 24px;
-    position: relative;
-    overflow: hidden;
-  }
-  .final-report-card::before {
-    content: '';
-    position: absolute;
-    top: -50%;
-    right: -20%;
-    width: 300px;
-    height: 300px;
-    background: radial-gradient(circle, rgba(255,107,61,0.08), transparent 60%);
-    pointer-events: none;
-  }
-  .final-report-header {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    margin-bottom: 16px;
-    position: relative;
-  }
-  .final-report-icon {
-    width: 44px; height: 44px;
+  /* ===== STAT CHIPS ===== */
+  .stat-row { display: flex; gap: 16px; flex-wrap: wrap; }
+  .stat-chip {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
     border-radius: 10px;
-    background: rgba(255,107,61,0.12);
-    display: flex; align-items: center; justify-content: center;
-    font-size: 20px;
-    color: var(--accent3);
-  }
-  .final-report-title {
-    font-size: 16px;
-    font-weight: 600;
-  }
-  .final-report-subtitle {
-    font-size: 11px;
-    color: var(--muted);
-    font-family: 'JetBrains Mono', monospace;
-  }
-  .report-items {
-    display: flex;
-    gap: 12px;
-    flex-wrap: wrap;
-    position: relative;
-  }
-  .report-item {
+    padding: 14px 18px;
     flex: 1;
     min-width: 140px;
-    background: rgba(0,0,0,0.2);
-    border: 1px solid rgba(255,255,255,0.06);
-    border-radius: 10px;
-    padding: 14px;
     text-align: center;
-    transition: transform 0.3s;
+    backdrop-filter: blur(8px);
+    transition: border-color 0.3s;
   }
-  .report-item:hover { transform: translateY(-3px); }
-  .report-item-icon {
-    font-size: 20px;
-    margin-bottom: 8px;
+  .stat-chip:hover { border-color: rgba(0,229,160,0.25); }
+  .stat-value {
+    font-size: 24px;
+    font-weight: 800;
+    color: var(--primary);
+    line-height: 1.2;
   }
-  .report-item-label {
+  .stat-value.red { color: var(--accent-red); }
+  .stat-value.orange { color: var(--accent-orange); }
+  .stat-value.gold { color: var(--accent-gold); }
+  .stat-value.blue { color: var(--secondary); }
+  .stat-label {
     font-size: 10px;
     color: var(--muted);
     text-transform: uppercase;
     letter-spacing: 1px;
     font-family: 'JetBrains Mono', monospace;
+    margin-top: 4px;
   }
 
-  /* Scrollbar */
-  ::-webkit-scrollbar { width: 6px; }
-  ::-webkit-scrollbar-track { background: var(--bg); }
-  ::-webkit-scrollbar-thumb { background: rgba(0,229,160,0.2); border-radius: 3px; }
+  /* ===== CALLOUTS ===== */
+  .callout {
+    border-radius: 10px;
+    padding: 16px 20px;
+    font-size: 13px;
+    line-height: 1.7;
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+    backdrop-filter: blur(8px);
+  }
+  .callout i { margin-top: 3px; font-size: 14px; flex-shrink: 0; }
+  .callout-green { background: var(--primary-dim); border: 1px solid rgba(0,229,160,0.12); color: #8fdcc0; }
+  .callout-green i { color: var(--primary); }
+  .callout-red { background: var(--accent-red-dim); border: 1px solid rgba(255,71,87,0.12); color: #f5a0a8; }
+  .callout-red i { color: var(--accent-red); }
+  .callout-blue { background: var(--secondary-dim); border: 1px solid rgba(0,180,216,0.12); color: #8ad0e8; }
+  .callout-blue i { color: var(--secondary); }
+  .callout-gold { background: var(--accent-gold-dim); border: 1px solid rgba(254,202,87,0.1); color: #e8d88a; }
+  .callout-gold i { color: var(--accent-gold); }
 
-  /* Responsive */
-  @media (max-width: 768px) {
-    .parallel-tracks { grid-template-columns: 1fr; }
-    .parallel-divider {
-      flex-direction: row;
-      height: auto;
-      padding: 8px 0;
-      width: 100%;
-    }
-    .divider-line { width: auto; height: 2px; flex: 1; }
-    .report-visual { grid-template-columns: 1fr; }
-    .diagram-wrapper { padding: 20px 12px 60px; }
-    .phase-container { padding: 20px 16px; }
-    .decision-tree { flex-direction: column; gap: 10px; }
-    .tree-branch { width: 2px; height: 30px; margin-top: 0; margin-left: 24px; }
-    .tree-branch-line { width: 2px; height: 100%; }
-    .tree-branch-label { top: 50%; left: 14px; transform: translateY(-50%); }
+  /* ===== FORMULA ===== */
+  .formula-box {
+    background: linear-gradient(135deg, rgba(0,229,160,0.04), rgba(0,180,216,0.03));
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--primary);
+    border-radius: 0 10px 10px 0;
+    padding: 16px 20px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    color: var(--fg);
+    line-height: 2;
+    overflow-x: auto;
+    box-shadow: inset 0 1px 3px rgba(0,0,0,0.2);
   }
 
-  /* Phase entrance animations */
-  .phase-container, .flow-connector, .split-connector, .merge-connector {
-    opacity: 0;
-    transform: translateY(30px);
-    animation: phaseEnter 0.8s ease-out forwards;
-  }
-  .phase-container:nth-child(1) { animation-delay: 0.1s; }
-  .flow-connector:nth-child(2) { animation-delay: 0.3s; }
-  .split-connector:nth-child(3) { animation-delay: 0.4s; }
-  .phase-container:nth-child(4) { animation-delay: 0.5s; }
-  .merge-connector:nth-child(5) { animation-delay: 0.7s; }
-  .phase-container:nth-child(6) { animation-delay: 0.8s; }
-  .flow-connector:nth-child(7) { animation-delay: 1.0s; }
-  .phase-container:nth-child(8) { animation-delay: 1.1s; }
-  @keyframes phaseEnter {
-    to { opacity: 1; transform: translateY(0); }
+  /* ===== MOTIF TAG ===== */
+  .motif-tag {
+    display: inline-block;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    background: rgba(0,180,216,0.08);
+    padding: 3px 8px;
+    border-radius: 4px;
+    color: var(--secondary);
+    letter-spacing: 0.5px;
+    word-break: break-all;
+    border: 1px solid rgba(0,180,216,0.1);
   }
 
-  /* Nucleotide rain on the side */
-  .nucleotide-rain {
-    position: fixed;
-    top: 0;
-    width: 40px;
-    height: 100vh;
-    z-index: 0;
-    pointer-events: none;
+  /* ===== VERDICT BARS ===== */
+  .verdict-confirmed { color: var(--accent-red); font-weight: 700; }
+  .verdict-suspected { color: var(--accent-orange); font-weight: 700; }
+  .verdict-borderline { color: var(--accent-gold); font-weight: 700; }
+  .verdict-natural { color: var(--primary); font-weight: 700; }
+
+  .verdict-bar {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 16px;
+    border-radius: 10px;
+    border-left: 4px solid;
+    margin-bottom: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    backdrop-filter: blur(8px);
+  }
+  .vb-red { background: var(--accent-red-dim); border-color: var(--accent-red); color: var(--accent-red); }
+  .vb-orange { background: var(--accent-orange-dim); border-color: var(--accent-orange); color: var(--accent-orange); }
+  .vb-gold { background: var(--accent-gold-dim); border-color: var(--accent-gold); color: var(--accent-gold); }
+  .vb-green { background: var(--primary-dim); border-color: var(--primary); color: var(--primary); }
+  .vb-code {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    opacity: 0.6;
+    margin-left: auto;
+  }
+
+  /* ===== HIERARCHY ===== */
+  .hierarchy-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 14px;
+    padding: 14px 0;
+    border-bottom: 1px solid var(--border-light);
+  }
+  .hierarchy-item:last-child { border-bottom: none; }
+  .hierarchy-rank {
+    width: 32px; height: 32px;
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 700;
+    font-size: 13px;
+    color: var(--bg);
+    flex-shrink: 0;
+  }
+  .hr-1 { background: linear-gradient(135deg, #ff4757, #e8384f); box-shadow: 0 2px 8px rgba(255,71,87,0.3); }
+  .hr-2 { background: linear-gradient(135deg, #ff9f43, #e88a30); box-shadow: 0 2px 8px rgba(255,159,67,0.3); }
+  .hr-3 { background: linear-gradient(135deg, #feca57, #e0b040); box-shadow: 0 2px 8px rgba(254,202,87,0.3); color: #1a1a2e; }
+  .hr-4 { background: linear-gradient(135deg, #4e6a84, #3d5a73); }
+  .hierarchy-label { font-size: 14px; font-weight: 600; margin-bottom: 2px; color: var(--fg); }
+  .hierarchy-desc { font-size: 12px; color: var(--fg-secondary); line-height: 1.6; }
+
+  /* ===== FLOW DIAGRAM ===== */
+  .flow-vertical {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0;
+  }
+  .flow-node {
+    background: var(--bg-card);
+    border: 1.5px solid var(--border);
+    border-radius: 10px;
+    padding: 14px 20px;
+    text-align: center;
+    font-size: 13px;
+    font-weight: 600;
+    min-width: 280px;
+    position: relative;
+    box-shadow: var(--shadow-sm);
+    transition: all 0.3s;
+    backdrop-filter: blur(10px);
+  }
+  .flow-node:hover { border-color: var(--primary); box-shadow: 0 0 20px rgba(0,229,160,0.1); }
+  .flow-node-accent {
+    border-color: rgba(0,229,160,0.3);
+    background: linear-gradient(135deg, rgba(0,229,160,0.08), rgba(0,180,216,0.05));
+    box-shadow: 0 0 20px rgba(0,229,160,0.08);
+  }
+  .flow-node-danger {
+    border-color: rgba(255,71,87,0.3);
+    background: linear-gradient(135deg, rgba(255,71,87,0.08), rgba(255,71,87,0.03));
+    box-shadow: 0 0 20px rgba(255,71,87,0.08);
+  }
+  .flow-node-warning {
+    border-color: rgba(255,159,67,0.3);
+    background: linear-gradient(135deg, rgba(255,159,67,0.08), rgba(255,159,67,0.03));
+    box-shadow: 0 0 20px rgba(255,159,67,0.08);
+  }
+  .flow-node-success {
+    border-color: rgba(0,229,160,0.3);
+    background: linear-gradient(135deg, rgba(0,229,160,0.08), rgba(0,229,160,0.03));
+    color: var(--primary);
+    box-shadow: 0 0 20px rgba(0,229,160,0.08);
+  }
+  .flow-arrow {
+    width: 2px;
+    height: 20px;
+    background: linear-gradient(180deg, var(--border), rgba(0,229,160,0.2));
+    position: relative;
+  }
+  .flow-arrow::after {
+    content: '';
+    position: absolute;
+    bottom: -3px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 0; height: 0;
+    border-left: 5px solid transparent;
+    border-right: 5px solid transparent;
+    border-top: 6px solid rgba(0,229,160,0.3);
+  }
+
+  .fan-out {
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+    width: 100%;
+    padding: 0 8px;
+  }
+  .fan-branch {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    flex: 1;
+    min-width: 0;
+  }
+  .fan-arrow-down {
+    width: 2px;
+    height: 16px;
+    background: linear-gradient(180deg, rgba(0,229,160,0.15), var(--border));
+    position: relative;
+  }
+  .fan-arrow-down::after {
+    content: '';
+    position: absolute;
+    bottom: -3px;
+    left: 50%;
+    transform: translateX(-50%);
+    border-left: 4px solid transparent;
+    border-right: 4px solid transparent;
+    border-top: 5px solid var(--border);
+  }
+  .fan-node {
+    background: var(--bg-card);
+    border: 1.5px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 8px;
+    text-align: center;
+    font-size: 10px;
+    font-weight: 600;
+    line-height: 1.4;
+    width: 100%;
+    box-shadow: var(--shadow-sm);
+    transition: all 0.3s;
+    backdrop-filter: blur(8px);
+  }
+  .fan-node:hover { border-color: rgba(0,229,160,0.25); transform: translateY(-2px); box-shadow: 0 0 16px rgba(0,229,160,0.08); }
+  .fan-node i { display: block; font-size: 16px; margin-bottom: 6px; color: var(--primary); }
+  .fan-node.fn-blue i { color: var(--secondary); }
+  .fan-node.fn-red i { color: var(--accent-red); }
+  .fan-node.fn-orange i { color: var(--accent-orange); }
+  .fan-node.fn-gold i { color: var(--accent-gold); }
+
+  .merge-line {
+    width: 100%;
+    height: 2px;
+    background: linear-gradient(90deg, rgba(0,229,160,0.2), rgba(0,180,216,0.15), rgba(0,229,160,0.2));
+    position: relative;
+  }
+  .merge-line::before, .merge-line::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 2px; height: 16px;
+    background: var(--border);
+  }
+  .merge-line::before { left: 0; }
+  .merge-line::after { right: 0; }
+
+  /* ===== PANEL PREVIEWS ===== */
+  .panel-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .panel-preview {
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+    backdrop-filter: blur(8px);
+  }
+  .panel-header-bar {
+    padding: 8px 12px;
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--bg);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .ph-red { background: linear-gradient(90deg, var(--accent-red), #e8384f); }
+  .ph-blue { background: linear-gradient(90deg, var(--secondary), #0090b0); }
+  .ph-orange { background: linear-gradient(90deg, var(--accent-orange), #e88a30); }
+  .ph-green { background: linear-gradient(90deg, var(--primary), #00b880); }
+  .panel-body-preview {
+    height: 80px;
+    background: rgba(6,9,15,0.6);
+    position: relative;
     overflow: hidden;
   }
-  .nucleotide-rain.left { left: 0; }
-  .nucleotide-rain.right { right: 0; }
-  .nuc-drop {
-    position: absolute;
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 12px;
-    opacity: 0.12;
-    animation: nucFall linear infinite;
+  .panel-body-preview canvas { width: 100%; height: 100%; }
+
+  /* ===== DECISION CARDS ===== */
+  .decision-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px;
+    margin-bottom: 12px;
+    backdrop-filter: blur(8px);
+    transition: border-color 0.3s;
   }
-  @keyframes nucFall {
-    0% { transform: translateY(-20px); opacity: 0; }
-    10% { opacity: 0.12; }
-    90% { opacity: 0.12; }
-    100% { transform: translateY(100vh); opacity: 0; }
+  .decision-card:hover { border-color: rgba(0,229,160,0.2); }
+  .decision-q {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--fg);
+    margin-bottom: 6px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .decision-q i { color: var(--primary); }
+  .decision-a {
+    font-size: 13px;
+    color: var(--fg-secondary);
+    line-height: 1.7;
+    padding-left: 28px;
+  }
+
+  /* ===== REPORT TREE ===== */
+  .report-tree { padding-left: 0; list-style: none; }
+  .report-tree li {
+    padding: 6px 0 6px 20px;
+    border-left: 2px solid var(--border-light);
+    font-size: 13px;
+    color: var(--fg-secondary);
+    position: relative;
+  }
+  .report-tree li::before {
+    content: '';
+    position: absolute;
+    left: -6px; top: 14px;
+    width: 10px; height: 2px;
+    background: var(--border-light);
+  }
+  .report-tree li strong { color: var(--fg); font-weight: 600; }
+  .report-tree > li { border-left-color: var(--primary); }
+  .report-tree > li::before { background: var(--primary); }
+
+  /* ===== TOC ===== */
+  .toc {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px 24px;
+    margin-bottom: 48px;
+  }
+  .toc-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 14px;
+    border-radius: 8px;
+    background: var(--bg-card);
+    border: 1px solid var(--border-subtle);
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--fg-secondary);
+    transition: all 0.2s;
+    cursor: default;
+    backdrop-filter: blur(8px);
+  }
+  .toc-item:hover { border-color: var(--primary); color: var(--primary); background: var(--primary-dim); }
+  .toc-num {
+    width: 24px; height: 24px;
+    border-radius: 6px;
+    background: rgba(255,255,255,0.04);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--muted);
+    flex-shrink: 0;
+  }
+  .toc-item:hover .toc-num { background: var(--primary); color: var(--bg); }
+
+  /* ===== ARCH DIAGRAM ===== */
+  .arch-diagram {
+    background: var(--bg-card);
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 32px 24px;
+    box-shadow: var(--shadow-md);
+    overflow-x: auto;
+    backdrop-filter: blur(12px);
+  }
+
+  /* ===== DIVIDER ===== */
+  .section-divider {
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--border), transparent);
+    margin: 8px 0 48px;
+  }
+
+  /* ===== HEX ROW ===== */
+  .hex-row { display: flex; justify-content: center; gap: 6px; margin: 24px 0; opacity: 0.15; }
+  .hex {
+    width: 20px; height: 23px;
+    background: var(--primary);
+    clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+  }
+
+  /* ===== FOOTER ===== */
+  .poster-footer {
+    text-align: center;
+    padding: 40px 0 20px;
+    border-top: 1px solid var(--border-light);
+    margin-top: 32px;
+  }
+  .poster-footer p { font-size: 12px; color: var(--muted); }
+
+  /* Utilities */
+  .mt-8 { margin-top: 8px; }
+  .mt-12 { margin-top: 12px; }
+  .mt-16 { margin-top: 16px; }
+  .mt-20 { margin-top: 20px; }
+  .mt-24 { margin-top: 24px; }
+  .mb-8 { margin-bottom: 8px; }
+  .mb-12 { margin-bottom: 12px; }
+  .mb-16 { margin-bottom: 16px; }
+  .text-muted { color: var(--muted); }
+  .text-sm { font-size: 12px; }
+  .text-xs { font-size: 10px; }
+  .font-mono { font-family: 'JetBrains Mono', monospace; }
+  .fw-600 { font-weight: 600; }
+  .fw-700 { font-weight: 700; }
+
+  @media print {
+    .export-btn { display: none !important; }
+    .bg-layer, .dna-deco, .glow-blob { display: none; }
+    body { background: #06090f; }
+    .method-section { break-inside: avoid; }
   }
 </style>
 </head>
 <body>
 
-<!-- Background Canvas for DNA Helix -->
-<canvas id="bgCanvas"></canvas>
+<!-- Background layers -->
+<div class="bg-layer bg-gradient-1"></div>
+<div class="bg-layer bg-gradient-2"></div>
+<div class="bg-layer bg-dots"></div>
+<div class="bg-layer bg-scanline"></div>
 
-<!-- Ambient blobs -->
-<div class="ambient-blob blob-1"></div>
-<div class="ambient-blob blob-2"></div>
-<div class="ambient-blob blob-3"></div>
+<div class="glow-blob glow-1"></div>
+<div class="glow-blob glow-2"></div>
+<div class="glow-blob glow-3"></div>
 
-<!-- Nucleotide rain sides -->
-<div class="nucleotide-rain left" id="nucRainLeft"></div>
-<div class="nucleotide-rain right" id="nucRainRight"></div>
+<svg class="dna-deco dna-deco-1" viewBox="0 0 200 600" fill="none">
+  <path d="M40 0 Q100 75 40 150 Q-20 225 40 300 Q100 375 40 450 Q-20 525 40 600" stroke="#00e5a0" stroke-width="2.5"/>
+  <path d="M160 0 Q100 75 160 150 Q220 225 160 300 Q100 375 160 450 Q220 525 160 600" stroke="#00b4d8" stroke-width="2.5"/>
+  <line x1="40" y1="75" x2="160" y2="75" stroke="#00e5a0" stroke-width="1" opacity="0.4"/>
+  <line x1="40" y1="150" x2="160" y2="150" stroke="#00e5a0" stroke-width="1" opacity="0.4"/>
+  <line x1="40" y1="225" x2="160" y2="225" stroke="#00b4d8" stroke-width="1" opacity="0.4"/>
+  <line x1="40" y1="300" x2="160" y2="300" stroke="#00b4d8" stroke-width="1" opacity="0.4"/>
+  <line x1="40" y1="375" x2="160" y2="375" stroke="#00e5a0" stroke-width="1" opacity="0.4"/>
+  <line x1="40" y1="450" x2="160" y2="450" stroke="#00e5a0" stroke-width="1" opacity="0.4"/>
+  <line x1="40" y1="525" x2="160" y2="525" stroke="#00b4d8" stroke-width="1" opacity="0.4"/>
+</svg>
 
-<div class="diagram-wrapper">
+<svg class="dna-deco dna-deco-2" viewBox="0 0 160 480" fill="none">
+  <path d="M30 0 Q80 60 30 120 Q-20 180 30 240 Q80 300 30 360 Q-20 420 30 480" stroke="#00e5a0" stroke-width="2"/>
+  <path d="M130 0 Q80 60 130 120 Q180 180 130 240 Q80 300 130 360 Q180 420 130 480" stroke="#ff4757" stroke-width="2"/>
+  <line x1="30" y1="60" x2="130" y2="60" stroke="#00e5a0" stroke-width="0.8" opacity="0.3"/>
+  <line x1="30" y1="120" x2="130" y2="120" stroke="#ff4757" stroke-width="0.8" opacity="0.3"/>
+  <line x1="30" y1="180" x2="130" y2="180" stroke="#00e5a0" stroke-width="0.8" opacity="0.3"/>
+  <line x1="30" y1="240" x2="130" y2="240" stroke="#ff4757" stroke-width="0.8" opacity="0.3"/>
+  <line x1="30" y1="300" x2="130" y2="300" stroke="#00e5a0" stroke-width="0.8" opacity="0.3"/>
+  <line x1="30" y1="360" x2="130" y2="360" stroke="#ff4757" stroke-width="0.8" opacity="0.3"/>
+  <line x1="30" y1="420" x2="130" y2="420" stroke="#00e5a0" stroke-width="0.8" opacity="0.3"/>
+</svg>
 
-  <!-- Header -->
-  <header class="diagram-header">
-    <div class="header-dna-icon">
-      <i class="fas fa-dna"></i>
-      <span>System Architecture</span>
-    </div>
-    <h1>Ghost Signature Detector</h1>
-    <p>End-to-end bioinformatics pipeline for identifying engineered genetic sequences through k-mer complexity analysis, database alignment, and machine learning classification.</p>
+<!-- Main Poster -->
+<div class="poster" id="posterContent">
+
+  <!-- HEADER -->
+  <header class="poster-header">
+    <div class="header-badge"><i class="fas fa-shield-halved"></i> Virus DNA Forensics</div>
+    <h1 class="poster-title">Ghost Signature<br><span>Detector</span></h1>
+    <p class="poster-subtitle">A multi-layered forensic system employing five orthogonal detection engines to identify laboratory-engineered virus DNA sequences — including those with no database homology.</p>
+    <svg class="header-dna-svg" width="320" height="40" viewBox="0 0 320 40" fill="none">
+      <path d="M0 20 Q40 0 80 20 Q120 40 160 20 Q200 0 240 20 Q280 40 320 20" stroke="#00e5a0" stroke-width="2"/>
+      <path d="M0 20 Q40 40 80 20 Q120 0 160 20 Q200 40 240 20 Q280 0 320 20" stroke="#00b4d8" stroke-width="2"/>
+      <circle cx="0" cy="20" r="3" fill="#00e5a0"/><circle cx="80" cy="20" r="3" fill="#00b4d8"/>
+      <circle cx="160" cy="20" r="3" fill="#00e5a0"/><circle cx="240" cy="20" r="3" fill="#00b4d8"/>
+      <circle cx="320" cy="20" r="3" fill="#00e5a0"/>
+    </svg>
+    <div class="header-divider"></div>
   </header>
 
-  <section class="phase-container phase-1">
-    <div class="floating-dna fd1"><i class="fas fa-dna"></i></div>
-    <div class="phase-label">
-      <div class="phase-number">1</div>
-      <div>
-        <div class="phase-title">Data Ingestion & Pre-Processing</div>
-        <div class="phase-subtitle">Entry point — Raw data standardization</div>
-      </div>
-    </div>
-
-    <!-- Input -->
-    <div class="io-row">
-      <div class="io-node">
-        <div class="io-icon input-icon"><i class="fas fa-file-code"></i></div>
-        <div>
-          <div class="io-text-label">Input</div>
-          <div class="io-text-value">Raw Genomic Sequences <span style="color:var(--muted);font-size:11px;">(FASTA / FASTQ)</span></div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Processes -->
-    <div class="process-row">
-      <div class="process-block">
-        <div class="process-block-header">
-          <div class="process-block-icon"><i class="fas fa-shield-halved"></i></div>
-          <div class="process-block-title">Sequence Validation</div>
-        </div>
-        <div class="process-block-desc">Checks for formatting errors, verifies file structure integrity, and filters out invalid nucleotide characters (non-ATCG/N bases).</div>
-      </div>
-      <div class="process-block">
-        <div class="process-block-header">
-          <div class="process-block-icon"><i class="fas fa-arrows-rotate"></i></div>
-          <div class="process-block-title">Standardization</div>
-        </div>
-        <div class="process-block-desc">Normalizes sequence data into a uniform format — consistent encoding, header parsing, and quality score calibration for downstream engines.</div>
-      </div>
-    </div>
-
-    <!-- Output -->
-    <div class="io-row" style="margin-top:16px;">
-      <div class="io-node">
-        <div class="io-icon output-icon"><i class="fas fa-database"></i></div>
-        <div>
-          <div class="io-text-label">Output</div>
-          <div class="io-text-value">Cleaned Genomic Sequence Data</div>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- ==================== SPLIT CONNECTOR ==================== -->
-  <div class="split-connector">
-    <div class="split-line-container">
-      <svg class="split-svg" viewBox="0 0 400 50" preserveAspectRatio="none">
-        <path class="split-path split-path-left" d="M200,0 C200,25 100,25 100,50" />
-        <path class="split-path split-path-right" d="M200,0 C200,25 300,25 300,50" />
-      </svg>
-    </div>
+  <!-- TABLE OF CONTENTS -->
+  <div class="toc">
+    <div class="toc-item"><span class="toc-num">1</span> System Overview</div>
+    <div class="toc-item"><span class="toc-num">2</span> Input Processing</div>
+    <div class="toc-item"><span class="toc-num">3</span> AI Classifier</div>
+    <div class="toc-item"><span class="toc-num">4</span> OOD Anomaly Scorer</div>
+    <div class="toc-item"><span class="toc-num">5</span> Homology Screening</div>
+    <div class="toc-item"><span class="toc-num">6</span> Regulatory Motif Scanner</div>
+    <div class="toc-item"><span class="toc-num">7</span> Codon Optimisation</div>
+    <div class="toc-item"><span class="toc-num">8</span> Evidence Integration</div>
+    <div class="toc-item"><span class="toc-num">9</span> Spatial Visualisation</div>
+    <div class="toc-item"><span class="toc-num">10</span> Report Generation</div>
+    <div class="toc-item"><span class="toc-num">11</span> Architecture Diagram</div>
+    <div class="toc-item"><span class="toc-num">12</span> Design Rationale</div>
   </div>
 
-  <!-- ==================== PHASE 2 ==================== -->
-  <section class="phase-container phase-2">
-    <div class="floating-dna fd2"><i class="fas fa-virus"></i></div>
-    <div class="phase-label">
-      <div class="phase-number">2</div>
+  <!-- ===== SECTION 1 ===== -->
+  <section class="method-section">
+    <div class="section-header">
+      <div class="section-number sn-teal">1</div>
       <div>
-        <div class="phase-title">Bioinformatics Analysis Engine</div>
-        <div class="phase-subtitle">Parallel processing — Core analysis logic</div>
+        <div class="section-title">System Overview</div>
+        <div class="section-tag">Multi-layered forensic genomic analysis</div>
       </div>
     </div>
+    <div class="card mb-16">
+      <div class="card-accent-top cat-teal"></div>
+      <div class="card-body">Ghost Signature detects three distinct classes of synthetic virus DNA origin: <strong>known cloning vectors and expression constructs</strong> (Vector class), <strong>novel computationally-designed virus sequences with no database homology</strong> (Ghost class), and <strong>naturally-occurring virus sequences</strong> (Natural class). The core architectural philosophy is that <strong>no single detection method is sufficient</strong> — engineered virus sequences can evade any individual detector through mutation, codon substitution, or deliberate obfuscation.</div>
+    </div>
+    <div class="stat-row">
+      <div class="stat-chip"><div class="stat-value">5</div><div class="stat-label">Detection Engines</div></div>
+      <div class="stat-chip"><div class="stat-value">3</div><div class="stat-label">Target Classes</div></div>
+      <div class="stat-chip"><div class="stat-value">4</div><div class="stat-label">Verdict Levels</div></div>
+      <div class="stat-chip"><div class="stat-value blue">2</div><div class="stat-label">OOD Envelopes</div></div>
+      <div class="stat-chip"><div class="stat-value red">8</div><div class="stat-label">Curated Motifs</div></div>
+    </div>
+  </section>
+  <div class="section-divider"></div>
 
-    <!-- Input -->
-    <div class="io-row">
-      <div class="io-node">
-        <div class="io-icon input-icon"><i class="fas fa-database"></i></div>
-        <div>
-          <div class="io-text-label">Input</div>
-          <div class="io-text-value">Cleaned Genomic Sequence Data</div>
+  <!-- ===== SECTION 2 ===== -->
+  <section class="method-section">
+    <div class="section-header">
+      <div class="section-number sn-green">2</div>
+      <div>
+        <div class="section-title">Input Processing</div>
+        <div class="section-tag">FASTA parsing, cleaning, statistics</div>
+      </div>
+    </div>
+    <div class="grid-2">
+      <div class="card">
+        <div class="card-accent-top cat-green"></div>
+        <div class="card-title"><i class="fas fa-file-code" style="color:var(--primary)"></i> Accepted Format</div>
+        <div class="card-body">Virus nucleotide sequences in <strong>FASTA format</strong>. Multiple sequences can be submitted in a single multi-record FASTA file. Each record is processed independently, generating a dedicated forensic report section per sequence.</div>
+      </div>
+      <div class="card">
+        <div class="card-accent-top cat-green"></div>
+        <div class="card-title"><i class="fas fa-broom" style="color:var(--primary)"></i> Sequence Cleaning</div>
+        <div class="card-body">All characters converted to uppercase. Any character <strong>not in</strong> the canonical nucleotide alphabet <span class="font-mono" style="color:var(--secondary)">{A, T, G, C, N}</span> is removed. Prevents downstream k-mer and statistical corruption.</div>
+      </div>
+    </div>
+    <div class="code-block mt-16">
+      <span class="code-label">Python</span>
+      <span class="kw">def</span> <span class="fn">clean_sequence</span>(seq):
+      <span class="cm">    # Retain only {A, T, G, C, N} in uppercase</span>
+      <span class="kw">    return</span> <span class="str">''.join</span>(c <span class="kw">for</span> c <span class="kw">in</span> seq.upper() <span class="kw">if</span> c <span class="kw">in</span> <span class="str">'ATGCN'</span>)
+    </div>
+    <div class="callout callout-green mt-16">
+      <i class="fas fa-chart-bar"></i>
+      <span>Basic statistics computed after cleaning: <strong>sequence length (bp)</strong>, <strong>GC content (%)</strong>, and <strong>FASTA header metadata</strong>. Used for reporting and triggering reliability flags at later stages.</span>
+    </div>
+  </section>
+  <div class="section-divider"></div>
+
+  <!-- ===== SECTION 3 ===== -->
+  <section class="method-section">
+    <div class="section-header">
+      <div class="section-number sn-blue">3</div>
+      <div>
+        <div class="section-title">Detection Engine 1 — AI Classifier</div>
+        <div class="section-tag">k-mer Machine Learning with Stacked Ensemble</div>
+      </div>
+    </div>
+    <div class="card mb-16">
+      <div class="card-accent-top cat-blue"></div>
+      <div class="card-title"><i class="fas fa-dna" style="color:var(--secondary)"></i> 3.1 Feature Representation</div>
+      <div class="card-body">The virus sequence is decomposed into overlapping <strong>k-mers of length k=8</strong> (octamers) using a sliding window advancing one position at a time, producing <span class="font-mono">(L − k + 1)</span> k-mers for a sequence of length L. These are transformed using <strong>TF-IDF vectorisation</strong>, which down-weights common k-mers and up-weights discriminative k-mers specific to particular classes, producing a sparse high-dimensional feature vector.</div>
+    </div>
+    <div class="card mb-16">
+      <div class="card-accent-top cat-blue"></div>
+      <div class="card-title"><i class="fas fa-scissors" style="color:var(--secondary)"></i> 3.2 Chunking Strategy</div>
+      <div class="card-body">Because the TF-IDF vectoriser was trained on fragments of <strong>CHUNK_SIZE = 500 bp</strong>, long input sequences are divided into overlapping 500 bp windows. Each chunk is independently transformed and classified. The final probability vector is the <strong>arithmetic mean</strong> across all chunks. This makes the classifier length-agnostic and produces a positional AI risk profile.</div>
+      <div class="code-block mt-12">
+        <span class="code-label">Python</span>
+<span class="fn">chunk_sequence</span>(seq, chunk=<span class="num">500</span>)  → list of fragments ≥ KMER_SIZE
+<span class="fn">predict_probabilities</span>(seq)       → mean P(Natural), P(Vector), P(Ghost)
+      </div>
+    </div>
+    <div class="card mb-16">
+      <div class="card-accent-top cat-blue"></div>
+      <div class="card-title"><i class="fas fa-layer-group" style="color:var(--secondary)"></i> 3.3 Stacked Ensemble Architecture</div>
+      <div class="card-body">Three base learners combined by a Logistic Regression meta-learner (stacking):</div>
+      <div class="grid-3 mt-12">
+        <div class="stat-chip" style="border-left:3px solid var(--secondary)">
+          <div class="stat-value blue" style="font-size:16px"><i class="fas fa-tree"></i></div>
+          <div class="stat-label">Random Forest</div>
+          <div class="text-xs text-muted mt-8">Captures non-linear feature interactions</div>
+        </div>
+        <div class="stat-chip" style="border-left:3px solid var(--primary)">
+          <div class="stat-value" style="font-size:16px"><i class="fas fa-arrow-trend-up"></i></div>
+          <div class="stat-label">Gradient Boosting</div>
+          <div class="text-xs text-muted mt-8">Sequential residual learning on hard examples</div>
+        </div>
+        <div class="stat-chip" style="border-left:3px solid var(--accent-orange)">
+          <div class="stat-value orange" style="font-size:16px"><i class="fas fa-vector-square"></i></div>
+          <div class="stat-label">Calibrated SVC</div>
+          <div class="text-xs text-muted mt-8">Platt scaling for probability calibration</div>
         </div>
       </div>
     </div>
-
-    <!-- Parallel Tracks -->
-    <div class="parallel-tracks">
-      <!-- Track A: k-mer -->
-      <div class="parallel-track track-a">
-        <div class="track-label"><i class="fas fa-cubes"></i> Track A</div>
-        <div class="track-title">k-mer Complexity Analysis</div>
-        <div class="track-desc">Breaks the sequence into substrings of length k, calculates frequency distributions, and identifies unnatural repetitions or low-complexity regions indicative of synthetic assembly.</div>
-        <div class="kmer-visual" id="kmerVisual"></div>
+    <div class="grid-3 mb-16">
+      <div class="card" style="border-left:3px solid var(--primary)">
+        <div class="badge badge-green mb-8">LABEL 0</div>
+        <div class="card-title" style="font-size:13px">Natural</div>
+        <div class="card-body text-xs">Natural viral genome sequences from reference databases</div>
       </div>
-
-      <!-- Divider -->
-      <div class="parallel-divider">
-        <div class="divider-line">
-          <div class="divider-dots">
-            <div class="divider-dot"></div>
-            <div class="divider-dot"></div>
-            <div class="divider-dot"></div>
-          </div>
-        </div>
+      <div class="card" style="border-left:3px solid var(--accent-red)">
+        <div class="badge badge-red mb-8">LABEL 1</div>
+        <div class="card-title" style="font-size:13px">Vector</div>
+        <div class="card-body text-xs">Known laboratory cloning vectors, plasmids, virus expression constructs</div>
       </div>
-
-      <!-- Track B: BLAST+ -->
-      <div class="parallel-track track-b">
-        <div class="track-label"><i class="fas fa-magnifying-glass-chart"></i> Track B</div>
-        <div class="track-title">BLAST+ Database Alignment</div>
-        <div class="track-desc">Queries the sequence against established databases of natural genomes. Identifies "unmapped" regions or anomalous alignments that do not correspond to known evolutionary biology.</div>
-        <div class="align-bars" id="alignBars"></div>
+      <div class="card" style="border-left:3px solid var(--accent-orange)">
+        <div class="badge badge-orange mb-8">LABEL 2</div>
+        <div class="card-title" style="font-size:13px">Ghost</div>
+        <div class="card-body text-xs">Computationally designed / codon-optimised synthetic virus sequences with no DB homology</div>
       </div>
     </div>
+    <div class="card">
+      <div class="card-accent-top cat-blue"></div>
+      <div class="card-title"><i class="fas fa-gauge-high" style="color:var(--secondary)"></i> 3.5 AI Risk Score Computation</div>
+      <div class="formula-box">
+<span class="cm"># 3-class model:</span>
+AI_risk = (P(Ghost) + P(Vector)) × <span class="num">100</span>
 
-    <!-- Output Features -->
-    <div class="phase-output-features">
-      <div class="feature-tag">
-        <div class="feature-dot" style="background:var(--accent);"></div>
-        Complexity Scores
-      </div>
-      <div class="feature-tag">
-        <div class="feature-dot" style="background:var(--accent2);"></div>
-        Alignment Gaps
-      </div>
-      <div class="feature-tag">
-        <div class="feature-dot" style="background:var(--accent3);"></div>
-        Anomaly Flags
+<span class="cm"># Legacy 2-class model:</span>
+AI_risk = P(Vector) × <span class="num">100</span>
+
+<span class="cm"># Short sequence floor applied below SHORT_SEQ_THRESHOLD</span>
       </div>
     </div>
   </section>
+  <div class="section-divider"></div>
 
-  <!-- ==================== MERGE CONNECTOR ==================== -->
-  <div class="merge-connector">
-    <div class="split-line-container">
-      <svg class="split-svg" viewBox="0 0 400 50" preserveAspectRatio="none">
-        <path class="split-path split-path-left" d="M100,0 C100,25 200,25 200,50" />
-        <path class="split-path split-path-right" d="M300,0 C300,25 200,25 200,50" />
-      </svg>
+  <!-- ===== SECTION 4 ===== -->
+  <section class="method-section">
+    <div class="section-header">
+      <div class="section-number sn-orange">4</div>
+      <div>
+        <div class="section-title">Detection Engine 2 — OOD Anomaly Scorer</div>
+        <div class="section-tag">Unsupervised out-of-distribution detection</div>
+      </div>
     </div>
+    <div class="callout callout-blue mb-16">
+      <i class="fas fa-lightbulb"></i>
+      <span><strong>Conceptual basis:</strong> A supervised classifier asks "which class?" — but a novel engineered virus sequence may score low simply because it resembles no known class. The OOD scorer asks "does this fall within the statistical distribution of <em>any</em> natural virus genome?" — a fundamentally different question.</span>
+    </div>
+    <div class="card mb-16">
+      <div class="card-accent-top cat-orange"></div>
+      <div class="card-title"><i class="fas fa-envelope-open-text" style="color:var(--accent-orange)"></i> 4.2 Dual-Envelope Architecture</div>
+      <div class="card-body">Two independent one-class statistical models (One-Class SVM / density estimator), each defining the boundary of "normal" sequence space for a different natural genome corpus:</div>
+      <div class="grid-2 mt-12">
+        <div class="stat-chip" style="border-left:3px solid var(--secondary)">
+          <div class="stat-value blue" style="font-size:14px"><i class="fas fa-virus"></i> Viral Envelope</div>
+          <div class="stat-label">Trained on natural viral genomes</div>
+        </div>
+        <div class="stat-chip" style="border-left:3px solid var(--primary)">
+          <div class="stat-value" style="font-size:14px"><i class="fas fa-bacterium"></i> Prokaryotic Envelope</div>
+          <div class="stat-label">Trained on E. coli & related bacteria</div>
+        </div>
+      </div>
+      <div class="formula-box mt-12" style="font-size:12px">
+<span class="cm"># Maximum — sequence must be natural in ALL domains to score low</span>
+OOD_score = <span class="fn">max</span>(viral_score, prokaryotic_score)
+      </div>
+      <div class="callout callout-gold mt-12">
+        <i class="fas fa-exclamation-triangle"></i>
+        <span><strong>Why max, not mean?</strong> The mean allows a sequence to score low by being partially natural in one domain while anomalous in another. The maximum implements a logical OR: natural in <em>all</em> domains or flagged — the appropriate conservative stance for a forensic tool.</span>
+      </div>
+    </div>
+    <div class="card mb-16">
+      <div class="card-accent-top cat-orange"></div>
+      <div class="card-title"><i class="fas fa-signal" style="color:var(--accent-orange)"></i> 4.3 Score Interpretation Levels</div>
+      <table class="styled-table mt-8">
+        <thead><tr><th>Score Range</th><th>Level</th><th>Interpretation</th></tr></thead>
+        <tbody>
+          <tr><td><span class="badge badge-red">≥ 75</span></td><td class="fw-600" style="color:var(--accent-red)">CRITICAL</td><td>Far outside natural distribution</td></tr>
+          <tr><td><span class="badge badge-orange">50–74</span></td><td class="fw-600" style="color:var(--accent-orange)">HIGH</td><td>Elevated, natural isolates sparse here</td></tr>
+          <tr><td><span class="badge badge-gold">35–49</span></td><td class="fw-600" style="color:var(--accent-gold)">MODERATE</td><td>Near boundary of natural distribution</td></tr>
+          <tr><td><span class="badge badge-blue">20–34</span></td><td class="fw-600" style="color:var(--secondary)">LOW</td><td>Within natural distribution</td></tr>
+          <tr><td><span class="badge badge-green">&lt; 20</span></td><td class="fw-600" style="color:var(--primary)">NEGATIVE</td><td>Well within natural distribution</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="callout callout-red">
+      <i class="fas fa-triangle-exclamation"></i>
+      <span><strong>Short Fragment Flag:</strong> Sequences below 300 bp trigger a SHORT_FRAGMENT flag. The density estimator requires sufficient k-mer context; OOD score may be unreliable on very short virus sequences and should be weighted less heavily.</span>
+    </div>
+  </section>
+  <div class="section-divider"></div>
+
+  <!-- ===== SECTION 5 ===== -->
+  <section class="method-section">
+    <div class="section-header">
+      <div class="section-number sn-red">5</div>
+      <div>
+        <div class="section-title">Detection Engine 3 — Homology Screening</div>
+        <div class="section-tag">BLAST vs NCBI UniVec database</div>
+      </div>
+    </div>
+    <div class="grid-2 mb-16">
+      <div class="card">
+        <div class="card-accent-top cat-red"></div>
+        <div class="card-title"><i class="fas fa-database" style="color:var(--accent-red)"></i> Database: UniVec</div>
+        <div class="card-body">NCBI UniVec — a curated collection of sequences from common laboratory vectors, cloning adaptors, linkers, primers, and other synthetic DNA elements used in virus engineering. Specifically designed for vector contamination screening with thousands of entries.</div>
+      </div>
+      <div class="card">
+        <div class="card-accent-top cat-red"></div>
+        <div class="card-title"><i class="fas fa-crosshairs" style="color:var(--accent-red)"></i> Search Parameters</div>
+        <div class="card-body"><code class="font-mono text-xs" style="color:var(--accent-red)">blastn</code> with <strong>e-value 1e-5</strong> — stringent enough to exclude spurious short alignments while remaining sensitive to genuine vector homology. CSV output format 10 with 12 fields.</div>
+      </div>
+    </div>
+    <div class="code-block mb-16">
+      <span class="code-label">Bash</span>
+blastn -query mystery_virus.fasta \
+       -db univec_db \
+       -evalue <span class="num">1e-5</span> \
+       -outfmt <span class="num">10</span> \
+       -out blast_hits.csv
+    </div>
+    <div class="card mb-16">
+      <div class="card-accent-top cat-red"></div>
+      <div class="card-title"><i class="fas fa-magnifying-glass-chart" style="color:var(--accent-red)"></i> 5.3 Hit Analysis Metrics</div>
+      <div class="grid-3 mt-8">
+        <div class="stat-chip"><div class="stat-value red" style="font-size:16px"><i class="fas fa-hashtag"></i></div><div class="stat-label">Total Hits</div></div>
+        <div class="stat-chip"><div class="stat-value red" style="font-size:16px"><i class="fas fa-percent"></i></div><div class="stat-label">Top Hit % Identity</div></div>
+        <div class="stat-chip"><div class="stat-value red" style="font-size:16px"><i class="fas fa-ruler-horizontal"></i></div><div class="stat-label">Query Coverage %</div></div>
+      </div>
+    </div>
+    <div class="callout callout-red mb-12">
+      <i class="fas fa-shield-halved"></i>
+      <span><strong>Direct Evidence — Highest Tier:</strong> BLAST homology is classified as direct evidence. A confirmed hit means the virus query shares sequence-level identity with a known laboratory construct — binary, verifiable, independently confirmable. A single hit with ≥95% identity is sufficient to trigger <span class="verdict-confirmed">CONFIRMED LAB-ENGINEERED</span> regardless of AI or OOD scores.</span>
+    </div>
+    <div class="callout callout-gold">
+      <i class="fas fa-eye-slash"></i>
+      <span><strong>Absence of Evidence Caveat:</strong> No BLAST hits does not exclude engineering. Engineered virus sequences can evade BLAST through synonymous codon substitution, deliberate mutation, or entirely novel de novo design. This is the primary motivation for the AI and OOD engines.</span>
+    </div>
+  </section>
+  <div class="section-divider"></div>
+
+  <!-- ===== SECTION 6 ===== -->
+  <section class="method-section">
+    <div class="section-header">
+      <div class="section-number sn-gold">6</div>
+      <div>
+        <div class="section-title">Detection Engine 4 — Regulatory Motif Scanner</div>
+        <div class="section-tag">Exact match + de novo enrichment analysis</div>
+      </div>
+    </div>
+    <div class="card mb-16">
+      <div class="card-accent-top cat-gold"></div>
+      <div class="card-title"><i class="fas fa-fingerprint" style="color:var(--accent-gold)"></i> 6.1 Curated Motif Library</div>
+      <table class="styled-table mt-8">
+        <thead><tr><th>Motif Name</th><th>Sequence</th></tr></thead>
+        <tbody>
+          <tr><td class="fw-600">T7 promoter</td><td><span class="motif-tag">TAATACGACTCACTATAGGG</span></td></tr>
+          <tr><td class="fw-600">CMV promoter core</td><td><span class="motif-tag">TGACATTGATTATTGACTAG</span></td></tr>
+          <tr><td class="fw-600">SV40 polyA signal</td><td><span class="motif-tag">AATAAAATATCTTTATTTTC</span></td></tr>
+          <tr><td class="fw-600">Kanamycin resistance</td><td><span class="motif-tag">ATGAGCCATATTCAACGGGA</span></td></tr>
+          <tr><td class="fw-600">Ampicillin resistance</td><td><span class="motif-tag">ATGAATTCACTGGCCGTCGT</span></td></tr>
+          <tr><td class="fw-600">Lac operator (pUC/lacZ)</td><td><span class="motif-tag">AATTGTGAGCGGATAACAATT</span></td></tr>
+          <tr><td class="fw-600">M13 reverse primer</td><td><span class="motif-tag">CAGGAAACAGCTATGAC</span></td></tr>
+          <tr><td class="fw-600">M13 forward primer</td><td><span class="motif-tag">GTAAAACGACGGCCAGT</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="grid-2">
+      <div class="card">
+        <div class="card-accent-top cat-gold"></div>
+        <div class="card-title"><i class="fas fa-bullseye" style="color:var(--accent-gold)"></i> 6.2 Exact Match Detection</div>
+        <div class="card-body">Each motif searched as an <strong>exact substring match</strong>. No mismatches permitted — intentionally conservative to eliminate false positives. Like BLAST, constitutes <strong>direct evidence</strong> (strongest individual signal).</div>
+      </div>
+      <div class="card">
+        <div class="card-accent-top cat-gold"></div>
+        <div class="card-title"><i class="fas fa-chart-line" style="color:var(--accent-gold)"></i> 6.3 De Novo k-mer Enrichment</div>
+        <div class="card-body">Query k-mers compared against background corpus of natural virus sequences. Fold-enrichment computed as frequency ratio. Top N enriched k-mers reported. <strong>Fold-enrichment above 10x</strong> flagged as unusual for natural sequences.</div>
+        <div class="formula-box mt-8" style="font-size:11px">fold_enrichment = freq_in_query / freq_in_background</div>
+      </div>
+    </div>
+  </section>
+  <div class="section-divider"></div>
+
+  <!-- ===== SECTION 7 ===== -->
+  <section class="method-section">
+    <div class="section-header">
+      <div class="section-number sn-green">7</div>
+      <div>
+        <div class="section-title">Detection Engine 5 — Codon Optimisation Analysis</div>
+        <div class="section-tag">CAI and RSCU forensic metrics</div>
+      </div>
+    </div>
+    <div class="callout callout-blue mb-16">
+      <i class="fas fa-flask"></i>
+      <span><strong>Purpose:</strong> Codon optimisation redesigns a virus gene's DNA to use codons preferred by a specific host organism, dramatically increasing protein expression. The resulting sequence has <em>no BLAST homology</em> to the original gene but carries a detectable statistical signature in its synonymous codon usage pattern.</span>
+    </div>
+    <div class="grid-2 mb-16">
+      <div class="card">
+        <div class="card-accent-top cat-green"></div>
+        <div class="card-title"><i class="fas fa-calculator" style="color:var(--primary)"></i> 7.2 Codon Adaptation Index (CAI)</div>
+        <div class="card-body">Measures how closely codon usage matches reference organism preferences. Computed as geometric mean of relative adaptiveness values.</div>
+        <div class="formula-box mt-8" style="font-size:11px">
+CAI = exp( (1/N) × Σ ln(w_i) )
+<span class="cm"># w_i = ratio of codon usage to most frequent synonymous codon</span>
+<span class="cm"># Range: 0 to 1</span>
+<span class="cm"># Natural viral: 0.4–0.6 | Optimised: > 0.65 (FLAGGED)</span>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-accent-top cat-green"></div>
+        <div class="card-title"><i class="fas fa-chart-bar" style="color:var(--primary)"></i> 7.3 RSCU Bias Metric</div>
+        <div class="card-body">RSCU measures deviation from equal usage of synonymous codons. Aggregated bias metric across all codons:</div>
+        <div class="formula-box mt-8" style="font-size:11px">
+RSCU_i = observed / expected_count
+RSCU_bias = mean(|RSCU_i - 1.0|) across all codons
+<span class="cm"># RSCU > 1.5 → preferred (RED)</span>
+<span class="cm"># RSCU < 0.5 → avoided (BLUE)</span>
+<span class="cm"># RSCU_bias > 0.45 → FLAGGED as optimised</span>
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-accent-top cat-green"></div>
+      <div class="card-title"><i class="fas fa-palette" style="color:var(--primary)"></i> 7.4 RSCU Bar Chart Visualisation</div>
+      <div class="card-body mb-8">Each codon rendered as a bar: <span style="color:var(--accent-red);font-weight:700">RED</span> (RSCU > 1.5, preferred), <span style="color:var(--secondary);font-weight:700">BLUE</span> (RSCU < 0.5, avoided), <span style="color:var(--muted);font-weight:700">GREY</span> (neutral). Natural virus sequences show moderate distributed bars; optimised sequences show extreme red/blue bars with few grey.</div>
+      <canvas id="rscuChart" height="140" style="width:100%;border-radius:8px;background:rgba(6,9,15,0.6);border:1px solid var(--border-light)"></canvas>
+    </div>
+  </section>
+
+  <div class="hex-row">
+    <div class="hex"></div><div class="hex"></div><div class="hex"></div><div class="hex"></div>
+    <div class="hex"></div><div class="hex"></div><div class="hex"></div><div class="hex"></div>
+    <div class="hex"></div><div class="hex"></div><div class="hex"></div><div class="hex"></div>
+    <div class="hex"></div><div class="hex"></div><div class="hex"></div>
   </div>
 
-  <!-- ==================== PHASE 3 ==================== -->
-  <section class="phase-container phase-3">
-    <div class="phase-label">
-      <div class="phase-number">3</div>
+  <!-- ===== SECTION 8 ===== -->
+  <section class="method-section">
+    <div class="section-header">
+      <div class="section-number sn-red">8</div>
       <div>
-        <div class="phase-title">Synthetic Marker Detection</div>
-        <div class="phase-subtitle">Classification — Detection logic engine</div>
+        <div class="section-title">Evidence Integration and Verdict Logic</div>
+        <div class="section-tag">Hierarchy-based deterministic rule system</div>
       </div>
     </div>
-
-    <!-- Input -->
-    <div class="io-row">
-      <div class="io-node">
-        <div class="io-icon input-icon"><i class="fas fa-puzzle-piece"></i></div>
-        <div>
-          <div class="io-text-label">Input</div>
-          <div class="io-text-value">Extracted Genomic Features <span style="color:var(--muted);font-size:11px;">(from Phase 2)</span></div>
+    <div class="card mb-16">
+      <div class="card-accent-top cat-red"></div>
+      <div class="card-title"><i class="fas fa-sitemap" style="color:var(--accent-red)"></i> 8.1 Evidence Hierarchy</div>
+      <div class="mt-12">
+        <div class="hierarchy-item">
+          <div class="hierarchy-rank hr-1">1</div>
+          <div><div class="hierarchy-label">Direct Evidence <span class="badge badge-red" style="margin-left:6px">HIGHEST</span></div><div class="hierarchy-desc">BLAST homology hits, exact motif matches. Binary, verifiable, database-dependent.</div></div>
         </div>
-      </div>
-    </div>
-
-    <!-- Classifier Visual -->
-    <div class="classifier-visual">
-      <div class="classifier-header">
-        <div class="classifier-title">
-          <i class="fas fa-brain" style="color:var(--accent);"></i>
-          Feature Evaluation & Classification
+        <div class="hierarchy-item">
+          <div class="hierarchy-rank hr-2">2</div>
+          <div><div class="hierarchy-label">Statistical Convergence</div><div class="hierarchy-desc">Agreement between AI classifier and OOD scorer. Independent feature spaces, model-dependent.</div></div>
         </div>
-        <div class="classifier-badge">Random Forest</div>
-      </div>
-      <div class="process-block-desc" style="margin-bottom:16px;">The system analyzes combined k-mer anomalies and BLAST+ alignment gaps, applying a trained Random Forest model to differentiate between natural mutations and engineered "ghost" signatures.</div>
-
-      <!-- Decision tree -->
-      <div class="decision-tree">
-        <div class="tree-node">
-          <div class="tree-node-circle root"><i class="fas fa-sitemap" style="color:var(--accent);font-size:18px;"></i></div>
-          <div class="tree-node-label">Feature<br>Vector</div>
+        <div class="hierarchy-item">
+          <div class="hierarchy-rank hr-3">3</div>
+          <div><div class="hierarchy-label">Compositional Signals</div><div class="hierarchy-desc">Codon optimisation metrics, k-mer enrichment. Suggestive but not conclusive alone.</div></div>
         </div>
-        <div class="tree-branch to-natural">
-          <div class="tree-branch-line"></div>
-          <div class="tree-branch-label">Low Anomaly</div>
-        </div>
-        <div class="tree-node">
-          <div class="tree-node-circle natural"><i class="fas fa-leaf" style="color:var(--accent);font-size:16px;"></i></div>
-          <div class="tree-node-label">Natural<br>Origin</div>
-        </div>
-        <div style="width:20px;"></div>
-        <div class="tree-node">
-          <div class="tree-node-circle synthetic"><i class="fas fa-flask" style="color:var(--accent3);font-size:16px;"></i></div>
-          <div class="tree-node-label">Synthetic<br>Origin</div>
-        </div>
-        <div class="tree-branch to-synthetic">
-          <div class="tree-branch-line"></div>
-          <div class="tree-branch-label">High Anomaly</div>
+        <div class="hierarchy-item">
+          <div class="hierarchy-rank hr-4">4</div>
+          <div><div class="hierarchy-label">Negative Evidence <span class="badge badge-green" style="margin-left:6px">LOWEST</span></div><div class="hierarchy-desc">Absence of signals reduces probability but does not exclude engineering.</div></div>
         </div>
       </div>
     </div>
+    <div class="card mb-16">
+      <div class="card-accent-top cat-red"></div>
+      <div class="card-title"><i class="fas fa-gavel" style="color:var(--accent-red)"></i> 8.2 Verdict Assignment Rules</div>
+      <div class="code-block mt-8">
+        <span class="code-label">Python</span>
+<span class="kw">if</span> BLAST_hits > <span class="num">0</span> <span class="kw">or</span> known_motifs detected:
+    verdict = <span class="str">"CONFIRMED LAB-ENGINEERED"</span>   <span class="cm"># rgb(190, 25, 25)</span>
 
-    <!-- Confidence Meter Output -->
-    <div class="confidence-meter">
-      <div class="meter-circle">
-        <svg viewBox="0 0 60 60">
-          <circle class="meter-circle-bg" cx="30" cy="30" r="26" />
-          <circle class="meter-circle-fill" cx="30" cy="30" r="26" />
-        </svg>
-        <div class="meter-value">87%</div>
+<span class="kw">elif</span> AI_risk >= <span class="num">60</span> <span class="kw">or</span> OOD_score >= OOD_THRESHOLD:
+    verdict = <span class="str">"SUSPECTED ENGINEERED"</span>        <span class="cm"># rgb(235, 125, 20)</span>
+
+<span class="kw">elif</span> AI_risk >= <span class="num">35</span> <span class="kw">or</span> OOD_score >= <span class="num">35</span>:
+    verdict = <span class="str">"BORDERLINE / REVIEW"</span>         <span class="cm"># rgb(190, 155, 25)</span>
+
+<span class="kw">else</span>:
+    verdict = <span class="str">"LIKELY NATURAL"</span>              <span class="cm"># rgb(25, 135, 85)</span>
       </div>
-      <div class="meter-info">
-        <div class="meter-title">Detection Confidence Score</div>
-        <div class="meter-desc">Probability of synthetic origin calculated by the ensemble classifier across all decision trees.</div>
-      </div>
+      <div class="verdict-bar vb-red mt-12"><i class="fas fa-circle-xmark"></i> CONFIRMED LAB-ENGINEERED <span class="vb-code">BLAST+ OR motif+</span></div>
+      <div class="verdict-bar vb-orange"><i class="fas fa-triangle-exclamation"></i> SUSPECTED ENGINEERED <span class="vb-code">AI≥60 OR OOD≥thresh</span></div>
+      <div class="verdict-bar vb-gold"><i class="fas fa-circle-question"></i> BORDERLINE / REVIEW <span class="vb-code">AI≥35 OR OOD≥35</span></div>
+      <div class="verdict-bar vb-green"><i class="fas fa-circle-check"></i> LIKELY NATURAL <span class="vb-code">all signals low</span></div>
     </div>
-  </section>
-
-  <!-- ==================== FLOW CONNECTOR ==================== -->
-  <div class="flow-connector">
-    <div class="flow-line"></div>
-    <div class="flow-arrow"></div>
-    <div class="flow-label">Score + Coordinates</div>
-  </div>
-
-  <!-- ==================== PHASE 4 ==================== -->
-  <section class="phase-container phase-4">
-    <div class="phase-label">
-      <div class="phase-number">4</div>
-      <div>
-        <div class="phase-title">Genomic Threat Mapping & Output</div>
-        <div class="phase-subtitle">Final phase — Actionable insights</div>
-      </div>
-    </div>
-
-    <!-- Processes -->
-    <div class="process-row">
-      <div class="process-block" style="border-color:rgba(255,107,61,0.15);">
-        <div class="process-block-header">
-          <div class="process-block-icon" style="background:rgba(255,107,61,0.1);color:var(--accent3);"><i class="fas fa-map-location-dot"></i></div>
-          <div class="process-block-title">Sequence Coordinate Mapping</div>
+    <div class="card">
+      <div class="card-accent-top cat-orange"></div>
+      <div class="card-title"><i class="fas fa-bolt" style="color:var(--accent-orange)"></i> 8.3 Signal Conflict Detection</div>
+      <div class="card-body">The system actively detects and reports logical conflicts between engines:</div>
+      <div class="grid-3 mt-12">
+        <div class="callout callout-gold" style="flex-direction:column;gap:6px">
+          <div class="fw-600" style="font-size:12px"><i class="fas fa-shuffle"></i> AI-OOD Conflict</div>
+          <div class="text-xs">AI risk high but OOD score low. May be known vector type well-represented in OOD training.</div>
         </div>
-        <div class="process-block-desc">Maps the flagged synthetic signatures exactly back to their base-pair locations on the original input sequence for precise identification.</div>
-      </div>
-      <div class="process-block" style="border-color:rgba(255,107,61,0.15);">
-        <div class="process-block-header">
-          <div class="process-block-icon" style="background:rgba(255,107,61,0.1);color:var(--accent3);"><i class="fas fa-gauge-high"></i></div>
-          <div class="process-block-title">Threat Scoring</div>
+        <div class="callout callout-red" style="flex-direction:column;gap:6px">
+          <div class="fw-600" style="font-size:12px"><i class="fas fa-ruler"></i> Short Sequence Limitation</div>
+          <div class="text-xs">Below 300 bp — k-mer statistics unreliable. BLAST and motifs are primary evidence.</div>
         </div>
-        <div class="process-block-desc">Calculates an overall biosecurity threat level based on the density, type, and distribution of synthetic markers found in the sequence.</div>
-      </div>
-    </div>
-
-    <!-- Report Visual -->
-    <div class="report-visual">
-      <!-- Genome Map -->
-      <div class="report-card">
-        <div class="report-card-title"><i class="fas fa-chart-bar"></i> Genomic Map — Synthetic Regions</div>
-        <div class="genome-map" id="genomeMap"></div>
-        <div class="genome-legend">
-          <span><span class="legend-dot" style="background:var(--accent);opacity:0.3;"></span>Natural</span>
-          <span><span class="legend-dot" style="background:var(--accent3);"></span>Flagged</span>
-        </div>
-      </div>
-
-      <!-- Threat Levels -->
-      <div class="report-card">
-        <div class="report-card-title"><i class="fas fa-triangle-exclamation"></i> Threat Level Breakdown</div>
-        <div style="display:flex;gap:12px;align-items:start;">
-          <div class="threat-score-big">
-            <div class="threat-score-number" id="threatScoreNum">0</div>
-            <div class="threat-score-label">Threat Score</div>
-          </div>
-          <div class="threat-level" style="flex:1;">
-            <div class="threat-level-row">
-              <span class="threat-level-label">Density</span>
-              <div class="threat-level-bar-bg">
-                <div class="threat-level-bar-fill" style="width:72%;background:var(--accent3);"></div>
-              </div>
-            </div>
-            <div class="threat-level-row">
-              <span class="threat-level-label">Type</span>
-              <div class="threat-level-bar-bg">
-                <div class="threat-level-bar-fill" style="width:58%;background:var(--accent2);"></div>
-              </div>
-            </div>
-            <div class="threat-level-row">
-              <span class="threat-level-label">Dist.</span>
-              <div class="threat-level-bar-bg">
-                <div class="threat-level-bar-fill" style="width:85%;background:var(--accent);"></div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Final Report -->
-    <div class="final-report-card">
-      <div class="final-report-header">
-        <div class="final-report-icon"><i class="fas fa-file-waveform"></i></div>
-        <div>
-          <div class="final-report-title">Final Report Output</div>
-          <div class="final-report-subtitle">Actionable biosecurity intelligence</div>
-        </div>
-      </div>
-      <div class="report-items">
-        <div class="report-item">
-          <div class="report-item-icon" style="color:var(--accent3);"><i class="fas fa-map"></i></div>
-          <div class="report-item-label">Visual Genome Map</div>
-        </div>
-        <div class="report-item">
-          <div class="report-item-icon" style="color:var(--accent);"><i class="fas fa-chart-pie"></i></div>
-          <div class="report-item-label">Threat Score</div>
-        </div>
-        <div class="report-item">
-          <div class="report-item-icon" style="color:var(--accent2);"><i class="fas fa-location-dot"></i></div>
-          <div class="report-item-label">Base-Pair Locations</div>
-        </div>
-        <div class="report-item">
-          <div class="report-item-icon" style="color:var(--accent3);"><i class="fas fa-list-check"></i></div>
-          <div class="report-item-label">Marker Catalog</div>
+        <div class="callout callout-green" style="flex-direction:column;gap:6px">
+          <div class="fw-600" style="font-size:12px"><i class="fas fa-check-double"></i> Convergent Evidence</div>
+          <div class="text-xs">Multiple independent engines agree — provides strong multi-signal confirmation.</div>
         </div>
       </div>
     </div>
   </section>
+  <div class="section-divider"></div>
 
+  <!-- ===== SECTION 9 ===== -->
+  <section class="method-section">
+    <div class="section-header">
+      <div class="section-number sn-blue">9</div>
+      <div>
+        <div class="section-title">Spatial Analysis and Genome Visualisation</div>
+        <div class="section-tag">Multi-panel maps, saliency, signal gap</div>
+      </div>
+    </div>
+    <div class="card mb-16">
+      <div class="card-accent-top cat-blue"></div>
+      <div class="card-title"><i class="fas fa-map" style="color:var(--secondary)"></i> 9.1 Genome Evidence Map — 4-Panel Plot</div>
+      <div class="panel-grid mt-12">
+        <div class="panel-preview">
+          <div class="panel-header-bar ph-red"><i class="fas fa-database"></i> BLAST Coverage</div>
+          <div class="panel-body-preview"><canvas id="panelBlast"></canvas></div>
+        </div>
+        <div class="panel-preview">
+          <div class="panel-header-bar ph-blue"><i class="fas fa-chart-area"></i> GC Content %</div>
+          <div class="panel-body-preview"><canvas id="panelGC"></canvas></div>
+        </div>
+        <div class="panel-preview">
+          <div class="panel-header-bar ph-orange"><i class="fas fa-brain"></i> AI Risk Profile</div>
+          <div class="panel-body-preview"><canvas id="panelAI"></canvas></div>
+        </div>
+        <div class="panel-preview">
+          <div class="panel-header-bar ph-green"><i class="fas fa-wave-square"></i> Shannon Entropy</div>
+          <div class="panel-body-preview"><canvas id="panelEntropy"></canvas></div>
+        </div>
+      </div>
+    </div>
+    <div class="grid-2 mb-16">
+      <div class="card">
+        <div class="card-title" style="font-size:12px"><span class="badge badge-red" style="margin-right:4px">P1</span> BLAST Coverage Map</div>
+        <div class="card-body text-xs">Each BLAST hit rendered as a red rectangle spanning query coordinates. Full red coverage = entire virus sequence matches known vectors. Empty (grey) = no homology.</div>
+      </div>
+      <div class="card">
+        <div class="card-title" style="font-size:12px"><span class="badge badge-blue" style="margin-right:4px">P2</span> GC Content Profile</div>
+        <div class="card-body text-xs">Sliding window GC% profile. Window scales with sequence length (min 20 bp, max 100 bp). Unusual GC (<30% or >65%) or sharp discontinuities indicate compositional manipulation or insertion boundaries in the virus genome.</div>
+      </div>
+      <div class="card">
+        <div class="card-title" style="font-size:12px"><span class="badge badge-orange" style="margin-right:4px">P3</span> AI Risk Profile</div>
+        <div class="card-body text-xs">Per-window AI risk score plotted spatially. Dashed line at 40% marks alert threshold. Flat elevated profiles = whole-sequence anomaly. Localised spikes = specific inserted synthetic elements.</div>
+      </div>
+      <div class="card">
+        <div class="card-title" style="font-size:12px"><span class="badge badge-green" style="margin-right:4px">P4</span> Shannon Entropy Profile</div>
+        <div class="card-body text-xs">Per-window sequence entropy: H = −Σ p_b × log₂(p_b). High entropy (~2.0) = high base diversity (expected natural). Low entropy = repetitive/low-complexity. Sharp drops identify tandem repeats or synthetic repeat elements.</div>
+      </div>
+    </div>
+    <div class="grid-2">
+      <div class="card">
+        <div class="card-accent-top cat-blue"></div>
+        <div class="card-title"><i class="fas fa-microscope" style="color:var(--secondary)"></i> 9.2 K-mer Saliency Map</div>
+        <div class="card-body">Identifies which specific positions most strongly drive the synthetic classification. Each k-mer assigned a saliency weight based on its contribution to the synthetic class prediction. <strong>Positive weights</strong> push toward synthetic; <strong>negative weights</strong> push toward natural. Provides single-position resolution for forensic investigators to identify specific virus subsequences of concern.</div>
+      </div>
+      <div class="card">
+        <div class="card-accent-top cat-orange"></div>
+        <div class="card-title"><i class="fas fa-expand" style="color:var(--accent-orange)"></i> 9.3 Signal Gap Plot</div>
+        <div class="card-body">2D scatter: <strong>X = BLAST similarity %</strong>, <strong>Y = OOD score</strong>. Defines the <span class="verdict-suspected">"Ghost Novelty Zone"</span> (top-left: high OOD + low BLAST) — engineered virus sequences that <em>all existing BLAST-based tools would fail to detect</em>. Primary visualisation of the system's novel detection capability.</div>
+        <canvas id="signalGapCanvas" height="160" style="width:100%;margin-top:10px;border-radius:8px;background:rgba(6,9,15,0.6);border:1px solid var(--border-light)"></canvas>
+      </div>
+    </div>
+  </section>
+  <div class="section-divider"></div>
+
+  <!-- ===== SECTION 10 ===== -->
+  <section class="method-section">
+    <div class="section-header">
+      <div class="section-number sn-green">10</div>
+      <div>
+        <div class="section-title">Report Generation</div>
+        <div class="section-tag">PDF output via FPDF with narrative engine</div>
+      </div>
+    </div>
+    <div class="grid-2 mb-16">
+      <div class="card">
+        <div class="card-accent-top cat-green"></div>
+        <div class="card-title"><i class="fas fa-file-pdf" style="color:var(--primary)"></i> 10.1 PDF Structure</div>
+        <ul class="report-tree mt-8">
+          <li><strong>Cover page</strong> — title, timestamp, query filename</li>
+          <li><strong>Per-sequence pages:</strong>
+            <ul class="report-tree" style="margin-top:4px">
+              <li>Verdict banner (colour-coded)</li>
+              <li>Forensic Assessment (executive summary)</li>
+              <li>Multi-Signal Evidence Analysis</li>
+              <li>Sequence Properties</li>
+              <li>AI Classifier Analysis</li>
+              <li>OOD Anomaly Analysis</li>
+              <li>Homology Screening table</li>
+              <li>Regulatory Motif Analysis</li>
+              <li>4-panel Genome Evidence Map</li>
+              <li>Codon Optimisation + RSCU chart</li>
+              <li>K-mer Saliency Map</li>
+              <li>Signal Gap Plot</li>
+              <li>Conclusion narrative</li>
+            </ul>
+          </li>
+          <li><strong>BLAST Evidence Log</strong> — up to 35 detailed per-hit records</li>
+        </ul>
+      </div>
+      <div>
+        <div class="card mb-12">
+          <div class="card-accent-top cat-green"></div>
+          <div class="card-title"><i class="fas fa-pen-nib" style="color:var(--primary)"></i> 10.2 Narrative Engine</div>
+          <div class="card-body">All interpretive text generated programmatically by <code class="font-mono text-xs">ForensicNarrativeEngine</code> class. Takes structured snapshot of all analysis results and generates contextually appropriate prose. Adapts to specific signal combinations — different text for AI-OOD conflicts vs convergent evidence, different conclusions per verdict. Ensures report text is always internally consistent with numerical results.</div>
+        </div>
+        <div class="card">
+          <div class="card-accent-top cat-green"></div>
+          <div class="card-title"><i class="fas fa-shield-halved" style="color:var(--primary)"></i> 10.3 Page-Break Safety</div>
+          <div class="card-body">Two-level protection system: <strong>pre-flight check</strong> estimates total table height before rendering and triggers new page if insufficient space; <strong>per-row guard</strong> catches cases where tables exceed even a fresh page, re-drawing header row on new page for readability.</div>
+        </div>
+      </div>
+    </div>
+  </section>
+  <div class="section-divider"></div>
+
+  <!-- ===== SECTION 11 ===== -->
+  <section class="method-section">
+    <div class="section-header">
+      <div class="section-number sn-teal">11</div>
+      <div>
+        <div class="section-title">System Architecture Diagram</div>
+        <div class="section-tag">End-to-end processing pipeline</div>
+      </div>
+    </div>
+    <div class="arch-diagram">
+      <div class="flow-vertical">
+        <div class="flow-node flow-node-accent">
+          <i class="fas fa-file-code" style="color:var(--primary);margin-right:6px"></i>
+          Input FASTA (Virus Sequences)
+        </div>
+        <div class="flow-arrow"></div>
+        <div class="flow-node">
+          <i class="fas fa-broom" style="color:var(--muted);margin-right:6px"></i>
+          Sequence Cleaning & Statistics
+        </div>
+        <div class="flow-arrow"></div>
+        <div class="fan-out">
+          <div class="fan-branch">
+            <div class="fan-arrow-down"></div>
+            <div class="fan-node"><i class="fas fa-brain"></i>AI Classifier<br><span class="text-xs text-muted">k-mer TF-IDF<br>Stacked Ensemble</span></div>
+          </div>
+          <div class="fan-branch">
+            <div class="fan-arrow-down"></div>
+            <div class="fan-node fn-blue"><i class="fas fa-chart-line"></i>OOD Scorer<br><span class="text-xs text-muted">Dual-Envelope<br>Viral + Prokaryotic</span></div>
+          </div>
+          <div class="fan-branch">
+            <div class="fan-arrow-down"></div>
+            <div class="fan-node fn-red"><i class="fas fa-database"></i>BLAST vs UniVec<br><span class="text-xs text-muted">Homology to known<br>vectors/constructs</span></div>
+          </div>
+          <div class="fan-branch">
+            <div class="fan-arrow-down"></div>
+            <div class="fan-node fn-orange"><i class="fas fa-fingerprint"></i>Motif Scanner<br><span class="text-xs text-muted">Exact match to<br>curated library</span></div>
+          </div>
+          <div class="fan-branch">
+            <div class="fan-arrow-down"></div>
+            <div class="fan-node fn-gold"><i class="fas fa-dna"></i>Codon Analysis<br><span class="text-xs text-muted">CAI + RSCU<br>optimisation detection</span></div>
+          </div>
+        </div>
+        <div class="merge-line" style="margin-top:0"></div>
+        <div class="flow-arrow" style="height:14px"></div>
+        <div class="flow-node flow-node-warning">
+          <i class="fas fa-layer-group" style="color:var(--accent-orange);margin-right:6px"></i>
+          Evidence Integration — Hierarchy + Conflict Detection
+        </div>
+        <div class="flow-arrow"></div>
+        <div class="flow-node flow-node-danger">
+          <i class="fas fa-gavel" style="color:var(--accent-red);margin-right:6px"></i>
+          Verdict Assignment
+          <div class="text-xs mt-8" style="opacity:0.7">CONFIRMED / SUSPECTED / BORDERLINE / NATURAL</div>
+        </div>
+        <div class="flow-arrow"></div>
+        <div class="flow-node">
+          <i class="fas fa-chart-column" style="color:var(--secondary);margin-right:6px"></i>
+          Spatial Visualisation — Genome Map + Saliency + Signal Gap
+        </div>
+        <div class="flow-arrow"></div>
+        <div class="flow-node">
+          <i class="fas fa-pen-nib" style="color:var(--primary);margin-right:6px"></i>
+          Narrative Engine — Contextual forensic prose generation
+        </div>
+        <div class="flow-arrow"></div>
+        <div class="flow-node flow-node-success">
+          <i class="fas fa-file-pdf" style="margin-right:6px"></i>
+          PDF Forensic Report Output
+        </div>
+      </div>
+    </div>
+  </section>
+  <div class="section-divider"></div>
+
+  <!-- ===== SECTION 12 ===== -->
+  <section class="method-section">
+    <div class="section-header">
+      <div class="section-number sn-gold">12</div>
+      <div>
+        <div class="section-title">Key Design Decisions and Their Rationale</div>
+        <div class="section-tag">Architectural justification for each major choice</div>
+      </div>
+    </div>
+    <div class="decision-card">
+      <div class="decision-q"><i class="fas fa-cubes"></i> Why five independent engines rather than one?</div>
+      <div class="decision-a">Each engine has a distinct blind spot. BLAST misses novel virus sequences. The AI classifier can be confused by cross-domain sequences. OOD scoring is unreliable on short fragments. Codon analysis requires sufficient coding sequence. <strong>No single engine is reliable across all virus sequence types.</strong> Multi-engine convergence dramatically reduces both false positive and false negative rates.</div>
+    </div>
+    <div class="decision-card">
+      <div class="decision-q"><i class="fas fa-maximize"></i> Why take the maximum OOD score across envelopes rather than the mean?</div>
+      <div class="decision-a">The mean would allow a virus sequence to score low by being partially natural in one domain while anomalous in another. The maximum implements a <strong>logical OR</strong>: the sequence must be natural in ALL domains to score low. This is the appropriate conservative stance for a forensic tool where false negatives (missing an engineered virus sequence) are more dangerous than false positives.</div>
+    </div>
+    <div class="decision-card">
+      <div class="decision-q"><i class="fas fa-filter"></i> Why use TF-IDF rather than raw k-mer counts?</div>
+      <div class="decision-a">Raw k-mer counts are dominated by highly frequent k-mers that appear in both natural and synthetic virus sequences. TF-IDF <strong>suppresses uninformative common k-mers</strong> and amplifies discriminative rare k-mers specific to synthetic sequence classes, improving classifier precision in the high-dimensional feature space.</div>
+    </div>
+    <div class="decision-card">
+      <div class="decision-q"><i class="fas fa-layer-group"></i> Why a stacked ensemble rather than a single model?</div>
+      <div class="decision-a">Individual models have characteristic failure modes. Random Forest can overfit. Linear SVC may miss non-linear patterns. Gradient Boosting is sensitive to class imbalance. Stacking with a meta-learner allows the system to <strong>learn when to trust each base learner</strong> based on specific feature patterns, producing better-calibrated probabilities than any single model.</div>
+    </div>
+    <div class="decision-card">
+      <div class="decision-q"><i class="fas fa-code-branch"></i> Why separate verdict rules rather than a single threshold?</div>
+      <div class="decision-a">The two-tier system (direct evidence → statistical evidence) reflects the <strong>epistemological difference</strong> between evidence types. A BLAST hit is falsifiable and independently verifiable. A high AI risk score is a probabilistic inference. Treating them with the same threshold logic would either under-weight definitive evidence or over-weight probabilistic inference. The rule-based verdict preserves this distinction explicitly.</div>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer class="poster-footer">
+    <div class="hex-row" style="margin-bottom:16px">
+      <div class="hex"></div><div class="hex"></div><div class="hex"></div><div class="hex"></div><div class="hex"></div>
+    </div>
+    <p>Ghost Signature Detector — Complete System Methodology</p>
+    <p class="text-xs text-muted mt-8">Multi-layered forensic genomic analysis for detection of laboratory-engineered virus DNA sequences</p>
+  </footer>
 </div>
 
 <script>
-// ============== Background DNA Helix Canvas ==============
-const canvas = document.getElementById('bgCanvas');
-const ctx = canvas.getContext('2d');
-let width, height, time = 0;
+/* ===== RSCU Bar Chart ===== */
+(function(){
+  const c=document.getElementById('rscuChart');if(!c)return;
+  const ctx=c.getContext('2d'),dpr=window.devicePixelRatio||1;
+  function draw(){
+    const r=c.getBoundingClientRect();c.width=r.width*dpr;c.height=140*dpr;ctx.scale(dpr,dpr);
+    const w=r.width,h=140;ctx.clearRect(0,0,w,h);
+    const codons=[
+      {v:.3},{v:2.8},{v:.2},{v:.1},{v:.4},{v:3.1},{v:.3},{v:.2},
+      {v:.1},{v:2.5},{v:.2},{v:.15},{v:.3},{v:2.9},{v:.25},{v:.4},
+      {v:2.7},{v:.3},{v:.2},{v:.5},{v:2.4},{v:.3},{v:2.6},{v:.2},
+      {v:.35},{v:3.0},{v:.2},{v:.4},{v:2.8},{v:2.3},{v:.8},{v:1.9}
+    ];
+    const n=codons.length,pad={l:30,r:10,t:10,b:22},pw=w-pad.l-pad.r,ph=h-pad.t-pad.b;
+    const bw=Math.max(1,(pw/n)-1);
+    ctx.strokeStyle='rgba(0,229,160,0.08)';ctx.lineWidth=.5;ctx.setLineDash([3,3]);
+    [1.0,1.5,0.5].forEach(v=>{
+      const y=pad.t+ph*(1-v/3.5);
+      ctx.beginPath();ctx.moveTo(pad.l,y);ctx.lineTo(w-pad.r,y);ctx.stroke();
+    });
+    ctx.setLineDash([]);
+    ctx.font='8px JetBrains Mono';ctx.fillStyle='#4e6a84';ctx.textAlign='right';
+    ctx.fillText('1.0',pad.l-4,pad.t+ph*(1-1/3.5)+3);
+    ctx.fillStyle='rgba(255,71,87,0.4)';ctx.fillText('1.5',pad.l-4,pad.t+ph*(1-1.5/3.5)+3);
+    ctx.fillStyle='rgba(0,180,216,0.4)';ctx.fillText('0.5',pad.l-4,pad.t+ph*(1-0.5/3.5)+3);
+    codons.forEach((cd,i)=>{
+      const x=pad.l+i*(bw+1),bh=Math.max(1,(cd.v/3.5)*ph),y=pad.t+ph-bh;
+      ctx.fillStyle=cd.v>1.5?'#ff4757':cd.v<0.5?'#00b4d8':'#2a3a4e';
+      ctx.beginPath();ctx.roundRect(x,y,bw,bh,[1,1,0,0]);ctx.fill();
+    });
+    ctx.font='7px Space Grotesk';const ly=h-6;ctx.textAlign='left';
+    ctx.fillStyle='#ff4757';ctx.fillRect(w-200,ly-5,8,6);ctx.fillStyle='#4e6a84';ctx.fillText('Preferred (>1.5)',w-188,ly);
+    ctx.fillStyle='#00b4d8';ctx.fillRect(w-110,ly-5,8,6);ctx.fillStyle='#4e6a84';ctx.fillText('Avoided (<0.5)',w-98,ly);
+    ctx.fillStyle='#2a3a4e';ctx.fillRect(w-20,ly-5,8,6);ctx.fillStyle='#4e6a84';ctx.fillText('Neutral',w-8,ly);
+  }
+  draw();window.addEventListener('resize',draw);
+})();
 
-function resizeCanvas() {
-  width = canvas.width = window.innerWidth;
-  height = canvas.height = window.innerHeight;
+/* ===== Mini Charts ===== */
+function drawMini(id,type){
+  const c=document.getElementById(id);if(!c)return;
+  const ctx=c.getContext('2d'),dpr=window.devicePixelRatio||1;
+  const r=c.getBoundingClientRect();c.width=r.width*dpr;c.height=80*dpr;ctx.scale(dpr,dpr);
+  const w=r.width,h=80,ctx2=ctx;ctx2.clearRect(0,0,w,h);
+  const p={l:4,r:4,t:8,b:8},pw=w-p.l-p.r,ph=h-p.t-p.b;
+  if(type==='blast'){
+    ctx2.fillStyle='rgba(255,71,87,0.06)';ctx2.fillRect(p.l,p.t,pw,ph);
+    [[.05,.15],[.2,.4],[.45,.6],[.65,.7],[.72,.95]].forEach(([s,e])=>{
+      ctx2.fillStyle='rgba(255,71,87,0.6)';ctx2.fillRect(p.l+s*pw,p.t+4,(e-s)*pw,ph-8);
+    });
+  }else if(type==='gc'){
+    ctx2.fillStyle='rgba(0,180,216,0.04)';ctx2.fillRect(p.l,p.t,pw,ph);
+    ctx2.strokeStyle='#00b4d8';ctx2.lineWidth=1.5;ctx2.beginPath();
+    for(let i=0;i<=pw;i++){const x=p.l+i,gc=48+Math.sin(i*.05)*8+Math.sin(i*.13)*5+Math.random()*2,y=p.t+ph-((gc-30)/50)*ph;i===0?ctx2.moveTo(x,y):ctx2.lineTo(x,y);}
+    ctx2.stroke();
+  }else if(type==='ai'){
+    ctx2.fillStyle='rgba(255,159,67,0.04)';ctx2.fillRect(p.l,p.t,pw,ph);
+    const th=p.t+ph*.45;ctx2.strokeStyle='rgba(255,159,67,0.2)';ctx2.lineWidth=.5;ctx2.setLineDash([3,3]);
+    ctx2.beginPath();ctx2.moveTo(p.l,th);ctx2.lineTo(p.l+pw,th);ctx2.stroke();ctx2.setLineDash([]);
+    ctx2.strokeStyle='#ff9f43';ctx2.lineWidth=1.5;ctx2.beginPath();
+    for(let i=0;i<=pw;i++){const x=p.l+i,risk=25+Math.sin(i*.03)*15+Math.sin(i*.08)*10+(i>pw*.3?20:0),y=p.t+ph-(risk/100)*ph;i===0?ctx2.moveTo(x,y):ctx2.lineTo(x,y);}
+    ctx2.stroke();
+  }else if(type==='entropy'){
+    ctx2.fillStyle='rgba(0,229,160,0.04)';ctx2.fillRect(p.l,p.t,pw,ph);
+    ctx2.strokeStyle='#00e5a0';ctx2.lineWidth=1.5;ctx2.beginPath();
+    for(let i=0;i<=pw;i++){const x=p.l+i,ent=1.85+Math.sin(i*.04)*.15+Math.random()*.05-(i>pw*.7?.4:0),y=p.t+ph-(ent/2.2)*ph;i===0?ctx2.moveTo(x,y):ctx2.lineTo(x,y);}
+    ctx2.stroke();
+  }
 }
-resizeCanvas();
-window.addEventListener('resize', resizeCanvas);
+drawMini('panelBlast','blast');drawMini('panelGC','gc');drawMini('panelAI','ai');drawMini('panelEntropy','entropy');
 
-function drawDNAHelix() {
-  ctx.clearRect(0, 0, width, height);
-  const cx = width * 0.85;
-  const amplitude = 40;
-  const verticalSpacing = 18;
-  const totalPoints = Math.ceil(height / verticalSpacing) + 2;
-  const phase = time * 0.02;
-
-  for (let i = 0; i < totalPoints; i++) {
-    const y = i * verticalSpacing;
-    const angle = i * 0.25 + phase;
-    const x1 = cx + Math.sin(angle) * amplitude;
-    const x2 = cx + Math.sin(angle + Math.PI) * amplitude;
-
-    // Depth based on cos for 3D effect
-    const depth1 = (Math.cos(angle) + 1) / 2;
-    const depth2 = (Math.cos(angle + Math.PI) + 1) / 2;
-
-    // Draw connecting rungs
-    if (i % 3 === 0) {
-      ctx.beginPath();
-      ctx.moveTo(x1, y);
-      ctx.lineTo(x2, y);
-      ctx.strokeStyle = `rgba(0, 229, 160, ${0.04 + depth1 * 0.03})`;
-      ctx.lineWidth = 1;
-      ctx.stroke();
+/* ===== Signal Gap Plot ===== */
+(function(){
+  const c=document.getElementById('signalGapCanvas');if(!c)return;
+  const ctx=c.getContext('2d'),dpr=window.devicePixelRatio||1;
+  function draw(){
+    const r=c.getBoundingClientRect();c.width=r.width*dpr;c.height=160*dpr;ctx.scale(dpr,dpr);
+    const w=r.width,h=160;ctx.clearRect(0,0,w,h);
+    const pad={l:36,r:16,t:12,b:28},pw=w-pad.l-pad.r,ph=h-pad.t-pad.b;
+    // Ghost zone
+    ctx.fillStyle='rgba(255,159,67,0.06)';ctx.fillRect(pad.l,pad.t,pw*.5,ph*.6);
+    // Grid
+    ctx.strokeStyle='rgba(0,229,160,0.06)';ctx.lineWidth=.5;
+    for(let i=0;i<=4;i++){
+      const y=pad.t+(ph/4)*i;ctx.beginPath();ctx.moveTo(pad.l,y);ctx.lineTo(pad.l+pw,y);ctx.stroke();
+      const x=pad.l+(pw/4)*i;ctx.beginPath();ctx.moveTo(x,pad.t);ctx.lineTo(x,pad.t+ph);ctx.stroke();
     }
-
-    // Draw strand 1 nodes
-    ctx.beginPath();
-    ctx.arc(x1, y, 2 + depth1 * 2, 0, Math.PI * 2);
-    ctx.fillStyle = `rgba(0, 229, 160, ${0.08 + depth1 * 0.12})`;
-    ctx.fill();
-
-    // Draw strand 2 nodes
-    ctx.beginPath();
-    ctx.arc(x2, y, 2 + depth2 * 2, 0, Math.PI * 2);
-    ctx.fillStyle = `rgba(0, 194, 255, ${0.08 + depth2 * 0.12})`;
-    ctx.fill();
+    // Axes
+    ctx.strokeStyle='rgba(0,229,160,0.2)';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(pad.l,pad.t);ctx.lineTo(pad.l,pad.t+ph);ctx.lineTo(pad.l+pw,pad.t+ph);ctx.stroke();
+    // Labels
+    ctx.font='9px JetBrains Mono';ctx.fillStyle='#4e6a84';ctx.textAlign='center';
+    ctx.fillText('BLAST Similarity %',pad.l+pw/2,h-2);
+    ctx.save();ctx.translate(8,pad.t+ph/2);ctx.rotate(-Math.PI/2);ctx.fillText('OOD Score',0,0);ctx.restore();
+    ctx.font='7px JetBrains Mono';ctx.textAlign='center';
+    for(let i=0;i<=4;i++) ctx.fillText((i*25).toString(),pad.l+(pw/4)*i,pad.t+ph+12);
+    ctx.textAlign='right';
+    for(let i=0;i<=4;i++) ctx.fillText((i*25).toString(),pad.l-4,pad.t+ph-(ph/4)*i+3);
+    // Zone label
+    ctx.font='9px Space Grotesk';ctx.fillStyle='rgba(255,159,67,0.5)';ctx.textAlign='center';
+    ctx.fillText('GHOST NOVELTY ZONE',pad.l+pw*.22,pad.t+ph*.15);
+    // Points
+    const pts=[
+      {x:10,y:15,c:'#00e5a0'},{x:25,y:20,c:'#00e5a0'},{x:5,y:10,c:'#00e5a0'},
+      {x:15,y:25,c:'#00e5a0'},{x:30,y:18,c:'#00e5a0'},{x:8,y:12,c:'#00e5a0'},
+      {x:20,y:22,c:'#00e5a0'},{x:12,y:30,c:'#00e5a0'},{x:35,y:15,c:'#00e5a0'},
+      {x:18,y:28,c:'#00e5a0'},
+      {x:85,y:20,c:'#ff4757'},{x:92,y:15,c:'#ff4757'},{x:78,y:25,c:'#ff4757'},
+      {x:95,y:18,c:'#ff4757'},{x:88,y:30,c:'#ff4757'},{x:82,y:12,c:'#ff4757'},
+      {x:5,y:70,c:'#ff9f43'},{x:10,y:80,c:'#ff9f43'},{x:8,y:65,c:'#ff9f43'},
+      {x:15,y:75,c:'#ff9f43'},{x:3,y:85,c:'#ff9f43'},{x:12,y:90,c:'#ff9f43'},
+      {x:7,y:60,c:'#ff9f43'},
+    ];
+    pts.forEach(p=>{
+      const px=pad.l+(p.x/100)*pw,py=pad.t+ph-(p.y/100)*ph;
+      ctx.globalAlpha=.8;ctx.beginPath();ctx.arc(px,py,4,0,Math.PI*2);ctx.fillStyle=p.c;ctx.fill();
+      ctx.globalAlpha=1;ctx.strokeStyle='rgba(6,9,15,0.6)';ctx.lineWidth=1;ctx.stroke();
+    });
+    // Legend
+    ctx.font='8px Space Grotesk';const ly=pad.t+6;
+    ctx.fillStyle='#00e5a0';ctx.beginPath();ctx.arc(pad.l+pw-100,ly,3,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle='#4e6a84';ctx.textAlign='left';ctx.fillText('Natural',pad.l+pw-94,ly+3);
+    ctx.fillStyle='#ff4757';ctx.beginPath();ctx.arc(pad.l+pw-50,ly,3,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle='#4e6a84';ctx.fillText('Vector',pad.l+pw-44,ly+3);
+    ctx.fillStyle='#ff9f43';ctx.beginPath();ctx.arc(pad.l+pw-100,ly+14,3,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle='#4e6a84';ctx.fillText('Ghost',pad.l+pw-94,ly+17);
   }
+  draw();window.addEventListener('resize',draw);
+})();
 
-  // Second helix on the left side
-  const cx2 = width * 0.12;
-  const phase2 = -time * 0.015;
-  for (let i = 0; i < totalPoints; i++) {
-    const y = i * verticalSpacing;
-    const angle = i * 0.25 + phase2;
-    const x1 = cx2 + Math.sin(angle) * 30;
-    const x2 = cx2 + Math.sin(angle + Math.PI) * 30;
-    const depth1 = (Math.cos(angle) + 1) / 2;
-    const depth2 = (Math.cos(angle + Math.PI) + 1) / 2;
-
-    if (i % 4 === 0) {
-      ctx.beginPath();
-      ctx.moveTo(x1, y);
-      ctx.lineTo(x2, y);
-      ctx.strokeStyle = `rgba(0, 194, 255, ${0.03 + depth1 * 0.02})`;
-      ctx.lineWidth = 1;
-      ctx.stroke();
-    }
-
-    ctx.beginPath();
-    ctx.arc(x1, y, 1.5 + depth1 * 1.5, 0, Math.PI * 2);
-    ctx.fillStyle = `rgba(0, 194, 255, ${0.05 + depth1 * 0.08})`;
-    ctx.fill();
-
-    ctx.beginPath();
-    ctx.arc(x2, y, 1.5 + depth2 * 1.5, 0, Math.PI * 2);
-    ctx.fillStyle = `rgba(0, 229, 160, ${0.05 + depth2 * 0.08})`;
-    ctx.fill();
-  }
-
-  time++;
-  requestAnimationFrame(drawDNAHelix);
-}
-drawDNAHelix();
-
-// ============== k-mer Tiles ==============
-const kmerData = [
-  { seq: 'ATCG', flagged: false },
-  { seq: 'TCGA', flagged: false },
-  { seq: 'CGAT', flagged: true },
-  { seq: 'GATC', flagged: false },
-  { seq: 'ATCG', flagged: true },
-  { seq: 'TCGA', flagged: false },
-  { seq: 'CGCG', flagged: true },
-  { seq: 'GCGC', flagged: true },
-  { seq: 'ATAT', flagged: true },
-  { seq: 'TATA', flagged: false },
-  { seq: 'GCTA', flagged: false },
-  { seq: 'CTAG', flagged: false },
-];
-const kmerContainer = document.getElementById('kmerVisual');
-kmerData.forEach((k, i) => {
-  const tile = document.createElement('div');
-  tile.className = 'kmer-tile' + (k.flagged ? ' flagged' : '');
-  tile.textContent = k.seq;
-  tile.style.animationDelay = (i * 0.2) + 's';
-  kmerContainer.appendChild(tile);
-});
-
-// ============== Alignment Bars ==============
-const alignData = [
-  { label: 'Chr1', mapped: 92 },
-  { label: 'Chr3', mapped: 67 },
-  { label: 'Chr7', mapped: 15 },
-  { label: 'Chr12', mapped: 84 },
-  { label: '??', mapped: 0 },
-];
-const alignContainer = document.getElementById('alignBars');
-alignData.forEach((a, i) => {
-  const row = document.createElement('div');
-  row.className = 'align-row';
-  const label = document.createElement('span');
-  label.style.width = '32px';
-  label.textContent = a.label;
-  label.style.color = a.mapped === 0 ? 'var(--accent3)' : 'var(--muted)';
-  const barBg = document.createElement('div');
-  barBg.className = 'align-bar-bg';
-  const barFill = document.createElement('div');
-  barFill.className = 'align-bar-fill ' + (a.mapped > 0 ? 'mapped' : 'unmapped');
-  barFill.style.width = Math.max(a.mapped, 8) + '%';
-  barFill.style.animationDelay = (i * 0.3) + 's';
-  barBg.appendChild(barFill);
-  const pct = document.createElement('span');
-  pct.textContent = a.mapped + '%';
-  pct.style.width = '30px';
-  pct.style.textAlign = 'right';
-  pct.style.color = a.mapped === 0 ? 'var(--accent3)' : 'var(--muted)';
-  row.appendChild(label);
-  row.appendChild(barBg);
-  row.appendChild(pct);
-  alignContainer.appendChild(row);
-});
-
-// ============== Genome Map Bars ==============
-const genomeMap = document.getElementById('genomeMap');
-// Generate a realistic-looking genome map with some flagged regions
-const genomePattern = [0,0,0,1,0,0,0,0,0,1,1,0,0,0,0,0,0,1,0,0,0,0,0,0,0,1,1,0,0,0,0,0,0,0,0,1,0,0,0,0];
-genomePattern.forEach((val, i) => {
-  const bar = document.createElement('div');
-  bar.className = 'genome-bar ' + (val ? 'flagged' : 'safe');
-  const h = val ? 18 + Math.random() * 14 : 8 + Math.random() * 10;
-  bar.style.height = h + 'px';
-  bar.style.animationDelay = (i * 0.05) + 's';
-  genomeMap.appendChild(bar);
-});
-
-// ============== Threat Score Counter ==============
-const threatNum = document.getElementById('threatScoreNum');
-let currentScore = 0;
-const targetScore = 78;
-function animateScore() {
-  if (currentScore < targetScore) {
-    currentScore += 1;
-    threatNum.textContent = currentScore;
-    setTimeout(animateScore, 25);
-  }
-}
-// Start after a delay
-setTimeout(animateScore, 1500);
-
-function createNucRain(container) {
-  const bases = ['A', 'T', 'C', 'G', 'U', 'N'];
-  const colors = ['#00e5a0', '#00c2ff', '#ff6b3d', '#e8f0f8'];
-  for (let i = 0; i < 20; i++) {
-    const drop = document.createElement('div');
-    drop.className = 'nuc-drop';
-    drop.textContent = bases[Math.floor(Math.random() * bases.length)];
-    drop.style.left = Math.random() * 30 + 'px';
-    drop.style.color = colors[Math.floor(Math.random() * colors.length)];
-    drop.style.animationDuration = (6 + Math.random() * 10) + 's';
-    drop.style.animationDelay = (Math.random() * 10) + 's';
-    container.appendChild(drop);
-  }
-}
-createNucRain(document.getElementById('nucRainLeft'));
-createNucRain(document.getElementById('nucRainRight'));
-
-// ============== Reduced Motion ==============
-if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
-  document.querySelectorAll('*').forEach(el => {
-    el.style.animation = 'none';
-    el.style.transition = 'none';
+/* ===== PNG Export ===== */
+function exportPNG(){
+  const btn=document.getElementById('exportBtn');
+  btn.classList.add('exporting');btn.innerHTML='<i class="fas fa-spinner fa-spin"></i> Rendering...';
+  btn.style.display='none';
+  html2canvas(document.getElementById('posterContent'),{
+    backgroundColor:'#06090f',scale:2,useCORS:true,logging:false,windowWidth:1080,
+  }).then(function(canvas){
+    btn.style.display='flex';btn.classList.remove('exporting');
+    btn.innerHTML='<i class="fas fa-camera"></i> Export as PNG';
+    const link=document.createElement('a');
+    link.download='Ghost_Signature_Methodology.png';
+    link.href=canvas.toDataURL('image/png');link.click();
+  }).catch(function(err){
+    btn.style.display='flex';btn.classList.remove('exporting');
+    btn.innerHTML='<i class="fas fa-camera"></i> Export as PNG';
+    console.error('Export failed:',err);
   });
 }
-</script>
 
+/* ===== Scroll Fade-In ===== */
+const obs=new IntersectionObserver(entries=>{
+  entries.forEach(e=>{if(e.isIntersecting)e.target.style.animationPlayState='running';});
+},{threshold:0.1});
+document.querySelectorAll('.method-section').forEach((el,i)=>{
+  el.style.animationDelay=(i*.05)+'s';el.style.animationPlayState='paused';obs.observe(el);
+});
+</script>
 </body>
 </html>

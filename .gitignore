@@ -26,8 +26,8 @@ config.py
 # dist/pyarmor_runtime_000000/    ← push this
 
 # --- AI Model files (your trained models, keep private) ---
-ghost_model.pkl
-dna_vectorizer.pkl
+models/ghost_model.pkl
+models/dna_vectorizer.pkl
 
 # --- BLAST & Analysis output files ---
 ghost_signature_report.csv
