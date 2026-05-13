@@ -37,7 +37,7 @@ This hidden pattern is the **Ghost Signature**: a low-entropy, hyper-optimised i
 ## 🚨 The Detection Gap — Why Existing Tools Are Not Enough
 
 <p align="center">
-  <img src="docs/diagrams/detection_gap.png" width="92%" alt="The Biosecurity Detection Gap">
+  <img src="detection_gap.png" width="92%" alt="The Biosecurity Detection Gap">
 </p>
 
 The fundamental problem: a sequence engineered to be *novel* — designed from scratch or codon-optimised until unrecognisable — leaves **zero BLAST hits** yet carries a clear synthetic signature in its statistical properties. Ghost Signature v3 is designed specifically to operate in this blind spot.
@@ -49,7 +49,7 @@ The fundamental problem: a sequence engineered to be *novel* — designed from s
 ## ⚙️ System Architecture — Five Independent Detection Engines
 
 <p align="center">
-  <img src="docs/diagrams/architecture.png" width="95%" alt="Ghost Signature System Architecture">
+  <img src="architecture.png" width="95%" alt="Ghost Signature System Architecture">
 </p>
 
 <p align="center">
@@ -69,7 +69,7 @@ The system integrates five orthogonal detection engines. No single engine is suf
 ### Engine 1 — AI Classifier (k-mer Machine Learning)
 
 <p align="center">
-  <img src="docs/diagrams/ai_classifier.png" width="90%" alt="AI Stacked Ensemble Architecture">
+  <img src="ai_classifier.png" width="90%" alt="AI Stacked Ensemble Architecture">
 </p>
 
 The sequence is decomposed into overlapping **8-mer (octamer)** fragments using a sliding window and transformed via **TF-IDF vectorisation** — suppressing common uninformative k-mers and amplifying discriminative synthetic signatures. The classifier is a **3-class stacked ensemble**: Random Forest, Gradient Boosting, and Calibrated Linear SVC as base learners, combined by a Logistic Regression meta-learner.
@@ -87,7 +87,7 @@ The sequence is decomposed into overlapping **8-mer (octamer)** fragments using 
 ### Engine 2 — Out-of-Distribution (OOD) Anomaly Scorer
 
 <p align="center">
-  <img src="docs/diagrams/ood_architecture.png" width="88%" alt="OOD Dual-Envelope Architecture">
+  <img src="ood_architecture.png" width="88%" alt="OOD Dual-Envelope Architecture">
 </p>
 
 The key innovation: a sequence can be *novel* without being in any database, yet it will still be *statistically anomalous* relative to any natural genome. The OOD scorer operates unsupervised — asking not *"which class does this belong to?"* but *"does this sequence fall within the statistical distribution of any natural genome?"*
@@ -144,7 +144,7 @@ Protein:  identical          Protein:  identical
 ## 🏛️ Evidence Hierarchy & Verdict System
 
 <p align="center">
-  <img src="docs/diagrams/evidence_hierarchy.png" width="90%" alt="Evidence Hierarchy and Verdict System">
+  <img src="evidence_hierarchy.png" width="90%" alt="Evidence Hierarchy and Verdict System">
 </p>
 
 Ghost Signature implements a **formal four-tier evidence hierarchy**. Direct BLAST evidence always takes precedence over statistical inference. Signal conflict detection actively reports when engines disagree, preventing falsely confident verdicts.
@@ -179,13 +179,13 @@ Every analysis produces a **multi-page publication-ready PDF**. The report inclu
 ### 📊 4-Panel Genome Evidence Map
 
 <p align="center">
-  <img src="docs/diagrams/report_panels.png" width="96%" alt="4-Panel Genome Evidence Map Explanation">
+  <img src="report_panels.png" width="96%" alt="4-Panel Genome Evidence Map Explanation">
 </p>
 
 ### 🎯 The Signal Gap Plot — Core Novelty Visualisation
 
 <p align="center">
-  <img src="docs/diagrams/signal_gap.png" width="72%" alt="Signal Gap Plot — Ghost Novelty Zone">
+  <img src="signal_gap.png" width="72%" alt="Signal Gap Plot — Ghost Novelty Zone">
 </p>
 
 The Signal Gap is a 2D scatter plot mapping each sequence by its BLAST similarity (x-axis) and OOD anomaly score (y-axis). Sequences in the **top-left Ghost Novelty Zone** are simultaneously unmatched in any vector database AND statistically anomalous relative to all natural genomes. **This zone is uniquely accessible only through Ghost Signature.**
