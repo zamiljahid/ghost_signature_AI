@@ -924,6 +924,8 @@
       <div class="stat-chip"><div class="stat-value">4</div><div class="stat-label">Verdict Levels</div></div>
       <div class="stat-chip"><div class="stat-value blue">2</div><div class="stat-label">OOD Envelopes</div></div>
       <div class="stat-chip"><div class="stat-value red">8</div><div class="stat-label">Curated Motifs</div></div>
+      <div class="stat-chip"><div class="stat-value orange">3</div><div class="stat-label">K-mer Scales</div></div>
+      <div class="stat-chip"><div class="stat-value gold">~90</div><div class="stat-label">Natural Accessions</div></div>
     </div>
   </section>
   <div class="section-divider"></div>
@@ -967,45 +969,50 @@
     <div class="section-header">
       <div class="section-number sn-blue">3</div>
       <div>
-        <div class="section-title">Detection Engine 1 — AI Classifier</div>
-        <div class="section-tag">k-mer Machine Learning with Stacked Ensemble</div>
+        <div class="section-title">Primary Engine — AI Classifier</div>
+        <div class="section-tag">Multi-scale k-mer TF-IDF + dense bio features → calibrated Random Forest — the system's headline classifier</div>
       </div>
     </div>
     <div class="card mb-16">
       <div class="card-accent-top cat-blue"></div>
-      <div class="card-title"><i class="fas fa-dna" style="color:var(--secondary)"></i> 3.1 Feature Representation</div>
-      <div class="card-body">The virus sequence is decomposed into overlapping <strong>k-mers of length k=8</strong> (octamers) using a sliding window advancing one position at a time, producing <span class="font-mono">(L − k + 1)</span> k-mers for a sequence of length L. These are transformed using <strong>TF-IDF vectorisation</strong>, which down-weights common k-mers and up-weights discriminative k-mers specific to particular classes, producing a sparse high-dimensional feature vector.</div>
+      <div class="card-title"><i class="fas fa-dna" style="color:var(--secondary)"></i> 3.1 Feature Representation — Multi-Scale K-mer Tokenisation</div>
+      <div class="card-body">The virus sequence is decomposed into overlapping k-mers at <strong>three scales simultaneously: k = 4, 6, and 8</strong>. Each k-mer is prefixed with its scale (<span class="font-mono" style="color:var(--secondary)">k4_ATGC</span>, <span class="font-mono" style="color:var(--secondary)">k6_ATGCAT</span>, <span class="font-mono" style="color:var(--secondary)">k8_ATGCATGC</span>) to prevent vocabulary collision across scales. All tokens are concatenated and transformed using <strong>TF-IDF vectorisation</strong> (max 100,000 features, sublinear TF), producing a sparse high-dimensional feature vector. A 23 bp sequence yields 54 multi-scale tokens vs only 16 with k = 8 alone — enabling reliable classification down to the minimum detectable length of 20 bp.</div>
     </div>
     <div class="card mb-16">
       <div class="card-accent-top cat-blue"></div>
       <div class="card-title"><i class="fas fa-scissors" style="color:var(--secondary)"></i> 3.2 Chunking Strategy</div>
-      <div class="card-body">Because the TF-IDF vectoriser was trained on fragments of <strong>CHUNK_SIZE = 500 bp</strong>, long input sequences are divided into overlapping 500 bp windows. Each chunk is independently transformed and classified. The final probability vector is the <strong>arithmetic mean</strong> across all chunks. This makes the classifier length-agnostic and produces a positional AI risk profile.</div>
+      <div class="card-body">Long input sequences are divided into 500 bp windows (<strong>CHUNK_SIZE = 500 bp</strong>). Each chunk is independently transformed and classified. The final probability vector is the <strong>arithmetic mean</strong> across all chunks, making the classifier length-agnostic. Fragments as short as <strong>4 bp</strong> are retained — the minimum length for one 4-mer token. Sequences of 20 bp or more produce enough multi-scale tokens for meaningful classification; sequences below 20 bp are routed to BORDERLINE without AI/OOD scoring.</div>
       <div class="code-block mt-12">
         <span class="code-label">Python</span>
-<span class="fn">chunk_sequence</span>(seq, chunk=<span class="num">500</span>)  → list of fragments ≥ KMER_SIZE
+<span class="fn">chunk_sequence</span>(seq, chunk=<span class="num">500</span>)  → list of fragments ≥ <span class="num">4</span> bp
 <span class="fn">predict_probabilities</span>(seq)       → mean P(Natural), P(Vector), P(Ghost)
       </div>
     </div>
     <div class="card mb-16">
       <div class="card-accent-top cat-blue"></div>
-      <div class="card-title"><i class="fas fa-layer-group" style="color:var(--secondary)"></i> 3.3 Stacked Ensemble Architecture</div>
-      <div class="card-body">Three base learners combined by a Logistic Regression meta-learner (stacking):</div>
-      <div class="grid-3 mt-12">
+      <div class="card-title"><i class="fas fa-tree" style="color:var(--secondary)"></i> 3.3 Calibrated Random Forest + Hybrid Feature Vector</div>
+      <div class="card-body">A single regularised <strong>Random Forest</strong> (300 trees, <code class="font-mono text-xs">min_samples_leaf=2</code>, <code class="font-mono text-xs">max_features="sqrt"</code>, <code class="font-mono text-xs">class_weight="balanced_subsample"</code>, OOB scoring) wrapped in <strong>isotonic <code class="font-mono text-xs">CalibratedClassifierCV</code></strong> for well-calibrated probabilities. This replaced the earlier <em>StackingClassifier</em>: on genome-grouped folds with only ~15–30 genomes per training fold, the stack's inner CV was unstable and 3× slower for no AUROC gain. The classifier consumes a <strong>hybrid feature vector</strong>, not k-mers alone:</div>
+      <div class="grid-2 mt-12">
         <div class="stat-chip" style="border-left:3px solid var(--secondary)">
-          <div class="stat-value blue" style="font-size:16px"><i class="fas fa-tree"></i></div>
-          <div class="stat-label">Random Forest</div>
-          <div class="text-xs text-muted mt-8">Captures non-linear feature interactions</div>
+          <div class="stat-value blue" style="font-size:14px"><i class="fas fa-dna"></i> TF-IDF k-mers</div>
+          <div class="text-xs text-muted mt-8">Multi-scale k=4,6,8 tokens, ngram(1,2), min_df=3, 100k features</div>
         </div>
         <div class="stat-chip" style="border-left:3px solid var(--primary)">
-          <div class="stat-value" style="font-size:16px"><i class="fas fa-arrow-trend-up"></i></div>
-          <div class="stat-label">Gradient Boosting</div>
-          <div class="text-xs text-muted mt-8">Sequential residual learning on hard examples</div>
+          <div class="stat-value" style="font-size:14px"><i class="fas fa-flask"></i> Dense bio features</div>
+          <div class="text-xs text-muted mt-8">GC content, CpG rate, 3rd-codon-position GC (GC3), z-scored</div>
         </div>
         <div class="stat-chip" style="border-left:3px solid var(--accent-orange)">
-          <div class="stat-value orange" style="font-size:16px"><i class="fas fa-vector-square"></i></div>
-          <div class="stat-label">Calibrated SVC</div>
-          <div class="text-xs text-muted mt-8">Platt scaling for probability calibration</div>
+          <div class="stat-value orange" style="font-size:14px"><i class="fas fa-magnifying-glass-chart"></i> Motif enrichment</div>
+          <div class="text-xs text-muted mt-8">Max Ghost-vs-background 6-mer fold-enrichment per sequence</div>
         </div>
+        <div class="stat-chip" style="border-left:3px solid var(--accent-gold)">
+          <div class="stat-value gold" style="font-size:14px"><i class="fas fa-wave-square"></i> OOD score (as feature)</div>
+          <div class="text-xs text-muted mt-8">The anomaly score is fed in as ONE input column — it informs the model but casts no vote downstream (see §4)</div>
+        </div>
+      </div>
+      <div class="callout callout-green mt-12">
+        <i class="fas fa-shield-halved"></i>
+        <span><strong>Leakage-free cross-validation.</strong> Honest performance is enforced by three controls inside every CV fold: (1) <strong>genome-grouped</strong> <code class="font-mono text-xs">StratifiedGroupKFold</code> — all windows of a genome stay in one fold (a hard leakage assertion runs each fold); (2) the <strong>TF-IDF vectoriser is fit on the training fold only</strong> (fitting it on the full set previously leaked validation IDF statistics); (3) <strong>SMOTE oversampling is applied inside the training fold only</strong>. This dropped the reported cross-genome AUROC from a leakage-inflated ~0.98 to an honest <strong>0.638 ± 0.078</strong>.</span>
       </div>
     </div>
     <div class="grid-3 mb-16">
@@ -1023,6 +1030,28 @@
         <div class="badge badge-orange mb-8">LABEL 2</div>
         <div class="card-title" style="font-size:13px">Ghost</div>
         <div class="card-body text-xs">Computationally designed / codon-optimised synthetic virus sequences with no DB homology</div>
+      </div>
+    </div>
+    <div class="card mb-16">
+      <div class="card-accent-top cat-blue"></div>
+      <div class="card-title"><i class="fas fa-database" style="color:var(--secondary)"></i> 3.4 Expanded Training Dataset</div>
+      <div class="card-body">The classifier is trained on a diverse corpus specifically designed to prevent "unfamiliar" outputs on novel virus families:</div>
+      <div class="grid-3 mt-12">
+        <div class="stat-chip" style="border-left:3px solid var(--primary)">
+          <div class="stat-value" style="font-size:15px">~90</div>
+          <div class="stat-label">Natural accessions</div>
+          <div class="text-xs text-muted mt-8">Filoviridae, Bunyavirales, Arenaviridae, Rhabdoviridae, Picornaviridae, Paramyxoviridae, Flaviviridae, Coronaviridae, Poxviridae, Adenoviridae, Parvoviridae, Anelloviridae + plant/insect/phages</div>
+        </div>
+        <div class="stat-chip" style="border-left:3px solid var(--accent-red)">
+          <div class="stat-value red" style="font-size:15px">30</div>
+          <div class="stat-label">Synthetic constructs (Ghost)</div>
+          <div class="text-xs text-muted mt-8">Real NCBI accessions — GFP reporters, codon-optimised antigens, gene therapy vectors, CRISPR constructs, CAR-T, JCVI-syn1.0</div>
+        </div>
+        <div class="stat-chip" style="border-left:3px solid var(--accent-orange)">
+          <div class="stat-value orange" style="font-size:15px">SMOTE</div>
+          <div class="stat-label">In-fold class balancing</div>
+          <div class="text-xs text-muted mt-8">Ghost minority is balanced with SMOTE <em>inside each training fold only</em>. The old pre-split row duplication shared <code class="font-mono text-xs">seq_id</code>s across train/val and leaked — it was removed.</div>
+        </div>
       </div>
     </div>
     <div class="card">
@@ -1046,35 +1075,42 @@ AI_risk = P(Vector) × <span class="num">100</span>
     <div class="section-header">
       <div class="section-number sn-orange">4</div>
       <div>
-        <div class="section-title">Detection Engine 2 — OOD Anomaly Scorer</div>
-        <div class="section-tag">Unsupervised out-of-distribution detection</div>
+        <div class="section-title">OOD Anomaly Scorer — Passive Diagnostic</div>
+        <div class="section-tag">Unsupervised novelty detection — metadata tag only, zero voting power</div>
       </div>
+    </div>
+    <div class="callout callout-red mb-16">
+      <i class="fas fa-ban"></i>
+      <span><strong>No decision power.</strong> The OOD scorer is <strong>not</strong> a voting engine. An ablation showed the unsupervised anomaly score has an independent-test AUROC of just <strong>0.248</strong> — it flags natural evolutionary variance and stochastic mutation as "synthetic," which <em>inverts</em> the ranking. Fusing it with the AI classifier dragged the full system from <strong>0.903 → 0.564</strong>. It is therefore removed from every score, weight, and verdict gate. It still executes and is surfaced only as passive metadata — <code class="font-mono text-xs">raw_ood_score</code> and an <code class="font-mono text-xs">is_novel_sequence_warning</code> flag — for human review and the forensic report. (It is also fed into the AI classifier as one input feature, §3.3, where the supervised model decides how much to trust it.)</span>
     </div>
     <div class="callout callout-blue mb-16">
       <i class="fas fa-lightbulb"></i>
-      <span><strong>Conceptual basis:</strong> A supervised classifier asks "which class?" — but a novel engineered virus sequence may score low simply because it resembles no known class. The OOD scorer asks "does this fall within the statistical distribution of <em>any</em> natural virus genome?" — a fundamentally different question.</span>
+      <span><strong>Conceptual basis:</strong> A supervised classifier asks "which class?" — the OOD scorer asks "does this fall within the statistical distribution of <em>any</em> natural virus genome?" A useful diagnostic question, but on this corpus it is too noisy to drive verdicts on its own — hence its relegation to a passive tag.</span>
     </div>
     <div class="card mb-16">
       <div class="card-accent-top cat-orange"></div>
       <div class="card-title"><i class="fas fa-envelope-open-text" style="color:var(--accent-orange)"></i> 4.2 Dual-Envelope Architecture</div>
-      <div class="card-body">Two independent one-class statistical models (One-Class SVM / density estimator), each defining the boundary of "normal" sequence space for a different natural genome corpus:</div>
+      <div class="card-body">Two <strong>IsolationForest</strong> one-class models, each trained on 4-mer frequency vectors (256-dimensional, vocabulary-independent) from a different natural genome corpus. Using 4-mer frequency vectors rather than TF-IDF means novel synthetic k-mers never collapse to zero — every sequence produces a meaningful score regardless of vocabulary coverage.</div>
       <div class="grid-2 mt-12">
         <div class="stat-chip" style="border-left:3px solid var(--secondary)">
-          <div class="stat-value blue" style="font-size:14px"><i class="fas fa-virus"></i> Viral Envelope</div>
-          <div class="stat-label">Trained on natural viral genomes</div>
+          <div class="stat-value blue" style="font-size:14px"><i class="fas fa-virus"></i> Viral Envelope <span class="badge badge-blue" style="font-size:9px">PRIMARY</span></div>
+          <div class="stat-label">Trained on ~90 natural viral genomes</div>
         </div>
         <div class="stat-chip" style="border-left:3px solid var(--primary)">
-          <div class="stat-value" style="font-size:14px"><i class="fas fa-bacterium"></i> Prokaryotic Envelope</div>
-          <div class="stat-label">Trained on E. coli & related bacteria</div>
+          <div class="stat-value" style="font-size:14px"><i class="fas fa-bacterium"></i> Prokaryotic Envelope <span class="badge badge-green" style="font-size:9px">REFERENCE</span></div>
+          <div class="stat-label">E. coli / Salmonella — shown for interpretability</div>
         </div>
       </div>
       <div class="formula-box mt-12" style="font-size:12px">
-<span class="cm"># Maximum — sequence must be natural in ALL domains to score low</span>
-OOD_score = <span class="fn">max</span>(viral_score, prokaryotic_score)
+<span class="cm"># Viral envelope is the operational OOD score</span>
+OOD_score = viral_score      <span class="cm"># (prokaryotic shown in report, not combined)</span>
+
+<span class="cm"># Two-anchor linear calibration: natural anchor → 0, ghost anchor → 100</span>
+score = (raw - cal_mean) / (cal_high - cal_mean) × 100
       </div>
       <div class="callout callout-gold mt-12">
         <i class="fas fa-exclamation-triangle"></i>
-        <span><strong>Why max, not mean?</strong> The mean allows a sequence to score low by being partially natural in one domain while anomalous in another. The maximum implements a logical OR: natural in <em>all</em> domains or flagged — the appropriate conservative stance for a forensic tool.</span>
+        <span><strong>Why viral-primary, not max?</strong> Natural viral sequences are anomalous to the prokaryotic detector by design — combining via MAX would inflate natural sequence scores and invert the ghost detection signal. The prokaryotic envelope is reported for interpretability but is not combined into the operational verdict.</span>
       </div>
     </div>
     <div class="card mb-16">
@@ -1093,7 +1129,7 @@ OOD_score = <span class="fn">max</span>(viral_score, prokaryotic_score)
     </div>
     <div class="callout callout-red">
       <i class="fas fa-triangle-exclamation"></i>
-      <span><strong>Short Fragment Flag:</strong> Sequences below 300 bp trigger a SHORT_FRAGMENT flag. The density estimator requires sufficient k-mer context; OOD score may be unreliable on very short virus sequences and should be weighted less heavily.</span>
+      <span><strong>Short Fragment Flag:</strong> Sequences below <strong>50 bp</strong> trigger a SHORT_FRAGMENT flag. The 4-mer IsolationForest is valid at 23 bp (one 4-mer is sufficient), so the flag is informational rather than a scoring floor. Sequences below <strong>20 bp</strong> are bypassed entirely — they contain too few k-mers for any statistical inference and receive BORDERLINE by policy.</span>
     </div>
   </section>
   <div class="section-divider"></div>
@@ -1261,7 +1297,7 @@ RSCU_bias = mean(|RSCU_i - 1.0|) across all codons
         </div>
         <div class="hierarchy-item">
           <div class="hierarchy-rank hr-2">2</div>
-          <div><div class="hierarchy-label">Statistical Convergence</div><div class="hierarchy-desc">Agreement between AI classifier and OOD scorer. Independent feature spaces, model-dependent.</div></div>
+          <div><div class="hierarchy-label">AI Classifier Probability</div><div class="hierarchy-desc">The calibrated Random Forest engineered-risk score drives the verdict. Model-dependent; OOD novelty is shown alongside as a passive tag, not combined.</div></div>
         </div>
         <div class="hierarchy-item">
           <div class="hierarchy-rank hr-3">3</div>
@@ -1276,23 +1312,34 @@ RSCU_bias = mean(|RSCU_i - 1.0|) across all codons
     <div class="card mb-16">
       <div class="card-accent-top cat-red"></div>
       <div class="card-title"><i class="fas fa-gavel" style="color:var(--accent-red)"></i> 8.2 Verdict Assignment Rules</div>
-      <div class="code-block mt-8">
-        <span class="code-label">Python</span>
+      <div class="card-body mb-8">The headline suspicion score is a <strong>cascade</strong>, not a weighted blend of engines: direct database/motif evidence is a deterministic override, otherwise the AI classifier probability <em>is</em> the score. OOD and the soft codon signal contribute nothing.</div>
+      <div class="formula-box" style="font-size:12px">
+S_fused = <span class="num">1.0</span> <span class="kw">if</span> (BLAST hit <span class="kw">or</span> motif hit) <span class="kw">else</span> P_engineered   <span class="cm"># AI classifier; OOD &amp; codon excluded</span>
+      </div>
+      <div class="code-block mt-12">
+        <span class="code-label">Python — AI-driven verdict (OOD has no vote)</span>
 <span class="kw">if</span> BLAST_hits > <span class="num">0</span> <span class="kw">or</span> known_motifs detected:
-    verdict = <span class="str">"CONFIRMED LAB-ENGINEERED"</span>   <span class="cm"># rgb(190, 25, 25)</span>
+    verdict = <span class="str">"CONFIRMED LAB-ENGINEERED"</span>   <span class="cm"># hard DB/motif override</span>
 
-<span class="kw">elif</span> AI_risk >= <span class="num">60</span> <span class="kw">or</span> OOD_score >= OOD_THRESHOLD:
+<span class="kw">elif</span> seq_len < <span class="num">20</span>:                 <span class="cm"># too short for the AI gate</span>
+    verdict = <span class="str">"BORDERLINE / REVIEW"</span>         <span class="cm"># short-seq policy bypass</span>
+
+<span class="kw">elif</span> AI_risk >= <span class="num">60</span>:               <span class="cm"># calibrated peak-F1 operating point</span>
     verdict = <span class="str">"SUSPECTED ENGINEERED"</span>        <span class="cm"># rgb(235, 125, 20)</span>
 
-<span class="kw">elif</span> AI_risk >= <span class="num">35</span> <span class="kw">or</span> OOD_score >= <span class="num">35</span>:
+<span class="kw">elif</span> AI_risk >= <span class="num">35</span>:
     verdict = <span class="str">"BORDERLINE / REVIEW"</span>         <span class="cm"># rgb(190, 155, 25)</span>
 
 <span class="kw">else</span>:
     verdict = <span class="str">"LIKELY NATURAL"</span>              <span class="cm"># rgb(25, 135, 85)</span>
       </div>
+      <div class="callout callout-gold mt-12">
+        <i class="fas fa-shield-halved"></i>
+        <span><strong>Why AI-driven, not AI-AND-OOD?</strong> The previous dual gate gave the OOD scorer veto power. Because OOD inverts the ranking (§4), that gate suppressed true positives without the specificity benefit it was assumed to provide — and the fused score collapsed to 0.564. The verdict now rides the AI classifier alone, with BLAST/motif as hard overrides. At the calibrated <strong>AI ≥ 60%</strong> operating point (peak-F1), this yields engineered recall ≈ 83% at a natural false-positive rate of ≈ <strong>13–15%</strong> on the independent test set.</span>
+      </div>
       <div class="verdict-bar vb-red mt-12"><i class="fas fa-circle-xmark"></i> CONFIRMED LAB-ENGINEERED <span class="vb-code">BLAST+ OR motif+</span></div>
-      <div class="verdict-bar vb-orange"><i class="fas fa-triangle-exclamation"></i> SUSPECTED ENGINEERED <span class="vb-code">AI≥60 OR OOD≥thresh</span></div>
-      <div class="verdict-bar vb-gold"><i class="fas fa-circle-question"></i> BORDERLINE / REVIEW <span class="vb-code">AI≥35 OR OOD≥35</span></div>
+      <div class="verdict-bar vb-orange"><i class="fas fa-triangle-exclamation"></i> SUSPECTED ENGINEERED <span class="vb-code">AI≥60</span></div>
+      <div class="verdict-bar vb-gold"><i class="fas fa-circle-question"></i> BORDERLINE / REVIEW <span class="vb-code">AI≥35  |  seq&lt;20bp</span></div>
       <div class="verdict-bar vb-green"><i class="fas fa-circle-check"></i> LIKELY NATURAL <span class="vb-code">all signals low</span></div>
     </div>
     <div class="card">
@@ -1306,7 +1353,7 @@ RSCU_bias = mean(|RSCU_i - 1.0|) across all codons
         </div>
         <div class="callout callout-red" style="flex-direction:column;gap:6px">
           <div class="fw-600" style="font-size:12px"><i class="fas fa-ruler"></i> Short Sequence Limitation</div>
-          <div class="text-xs">Below 300 bp — k-mer statistics unreliable. BLAST and motifs are primary evidence.</div>
+          <div class="text-xs">Below 50 bp — SHORT_FRAGMENT flag raised. Below 20 bp — AI/OOD gates bypassed; BLAST and motifs are primary evidence.</div>
         </div>
         <div class="callout callout-green" style="flex-direction:column;gap:6px">
           <div class="fw-600" style="font-size:12px"><i class="fas fa-check-double"></i> Convergent Evidence</div>
@@ -1457,11 +1504,11 @@ RSCU_bias = mean(|RSCU_i - 1.0|) across all codons
         <div class="fan-out">
           <div class="fan-branch">
             <div class="fan-arrow-down"></div>
-            <div class="fan-node"><i class="fas fa-brain"></i>AI Classifier<br><span class="text-xs text-muted">k-mer TF-IDF<br>Stacked Ensemble</span></div>
+            <div class="fan-node"><i class="fas fa-brain"></i>AI Classifier <span class="badge badge-blue" style="font-size:8px">PRIMARY</span><br><span class="text-xs text-muted">TF-IDF + GC/CpG/GC3<br>Calibrated Random Forest</span></div>
           </div>
           <div class="fan-branch">
             <div class="fan-arrow-down"></div>
-            <div class="fan-node fn-blue"><i class="fas fa-chart-line"></i>OOD Scorer<br><span class="text-xs text-muted">Dual-Envelope<br>Viral + Prokaryotic</span></div>
+            <div class="fan-node fn-blue"><i class="fas fa-chart-line"></i>OOD Scorer <span class="badge badge-gold" style="font-size:8px">PASSIVE</span><br><span class="text-xs text-muted">4-mer IsolationForest<br>diagnostic tag · no vote</span></div>
           </div>
           <div class="fan-branch">
             <div class="fan-arrow-down"></div>
@@ -1480,7 +1527,7 @@ RSCU_bias = mean(|RSCU_i - 1.0|) across all codons
         <div class="flow-arrow" style="height:14px"></div>
         <div class="flow-node flow-node-warning">
           <i class="fas fa-layer-group" style="color:var(--accent-orange);margin-right:6px"></i>
-          Evidence Integration — Hierarchy + Conflict Detection
+          Evidence Integration — AI-driven cascade + hard BLAST/motif override
         </div>
         <div class="flow-arrow"></div>
         <div class="flow-node flow-node-danger">
@@ -1518,20 +1565,24 @@ RSCU_bias = mean(|RSCU_i - 1.0|) across all codons
       </div>
     </div>
     <div class="decision-card">
-      <div class="decision-q"><i class="fas fa-cubes"></i> Why five independent engines rather than one?</div>
-      <div class="decision-a">Each engine has a distinct blind spot. BLAST misses novel virus sequences. The AI classifier can be confused by cross-domain sequences. OOD scoring is unreliable on short fragments. Codon analysis requires sufficient coding sequence. <strong>No single engine is reliable across all virus sequence types.</strong> Multi-engine convergence dramatically reduces both false positive and false negative rates.</div>
+      <div class="decision-q"><i class="fas fa-cubes"></i> What role does each engine play now?</div>
+      <div class="decision-a">The architecture is a <strong>cascade led by one strong engine</strong>, not a flat vote. The calibrated AI classifier produces the headline probability; <strong>BLAST homology and curated motif hits are hard deterministic overrides</strong> (definitive, falsifiable evidence). The OOD scorer and codon-bias analysis are <strong>diagnostic context</strong> — surfaced in the report, and (for OOD) fed to the classifier as an input feature — but given no direct vote. Each still covers a blind spot, yet only the reliable signals are allowed to decide.</div>
     </div>
     <div class="decision-card">
-      <div class="decision-q"><i class="fas fa-maximize"></i> Why take the maximum OOD score across envelopes rather than the mean?</div>
-      <div class="decision-a">The mean would allow a virus sequence to score low by being partially natural in one domain while anomalous in another. The maximum implements a <strong>logical OR</strong>: the sequence must be natural in ALL domains to score low. This is the appropriate conservative stance for a forensic tool where false negatives (missing an engineered virus sequence) are more dangerous than false positives.</div>
+      <div class="decision-q"><i class="fas fa-virus"></i> Why is the OOD score viral-primary rather than a max across envelopes?</div>
+      <div class="decision-a">Natural viral sequences are anomalous to the prokaryotic envelope <em>by design</em> — taking a max across envelopes would label normal viruses as outliers and invert the signal. The viral envelope alone is the diagnostic OOD score; the prokaryotic envelope is reported for interpretability only. Since the OOD score no longer participates in any verdict, this choice now affects only the displayed novelty tag, not classification.</div>
     </div>
     <div class="decision-card">
       <div class="decision-q"><i class="fas fa-filter"></i> Why use TF-IDF rather than raw k-mer counts?</div>
-      <div class="decision-a">Raw k-mer counts are dominated by highly frequent k-mers that appear in both natural and synthetic virus sequences. TF-IDF <strong>suppresses uninformative common k-mers</strong> and amplifies discriminative rare k-mers specific to synthetic sequence classes, improving classifier precision in the high-dimensional feature space.</div>
+      <div class="decision-a">Raw k-mer counts are dominated by highly frequent k-mers that appear in both natural and synthetic virus sequences. TF-IDF <strong>suppresses uninformative common k-mers</strong> and amplifies discriminative rare k-mers specific to synthetic sequence classes, improving classifier precision in the high-dimensional feature space. The vocabulary is capped at 100,000 features to cover multi-scale k=4,6,8 tokens, with <code class="font-mono text-xs">min_df=1</code> to retain rare synthetic k-mers that appear only in a few training sequences.</div>
     </div>
     <div class="decision-card">
-      <div class="decision-q"><i class="fas fa-layer-group"></i> Why a stacked ensemble rather than a single model?</div>
-      <div class="decision-a">Individual models have characteristic failure modes. Random Forest can overfit. Linear SVC may miss non-linear patterns. Gradient Boosting is sensitive to class imbalance. Stacking with a meta-learner allows the system to <strong>learn when to trust each base learner</strong> based on specific feature patterns, producing better-calibrated probabilities than any single model.</div>
+      <div class="decision-q"><i class="fas fa-ban"></i> Why relegate the OOD scorer to a passive tag?</div>
+      <div class="decision-a">An ablation isolated each engine's contribution to the fused decision. The unsupervised OOD score reached an independent-test AUROC of only <strong>0.248</strong> — below chance — because it reads natural evolutionary variance as anomalous, inverting the Ghost/Natural ranking. Giving it any vote (fusion weight or verdict gate) <strong>dragged the full system from 0.903 down to 0.564</strong>. Removing it entirely and letting the calibrated Random Forest drive the verdict recovers the ~0.90 operating point. OOD is retained only as diagnostic metadata, and as one input feature the supervised model is free to down-weight.</div>
+    </div>
+    <div class="decision-card">
+      <div class="decision-q"><i class="fas fa-tree"></i> Why a single calibrated Random Forest rather than a stacked ensemble?</div>
+      <div class="decision-a">The genome-grouped cross-validation leaves only ~15–30 genomes in each training fold. A <code class="font-mono text-xs">StackingClassifier</code> runs an <em>inner</em> CV on that tiny, grouped sample to fit its meta-learner — unstable and ~3× slower, for no measurable AUROC gain. A single Random Forest with out-of-bag scoring and <code class="font-mono text-xs">balanced_subsample</code> weighting is more stable on small folds, and isotonic <code class="font-mono text-xs">CalibratedClassifierCV</code> supplies the probability calibration the meta-learner used to provide.</div>
     </div>
     <div class="decision-card">
       <div class="decision-q"><i class="fas fa-code-branch"></i> Why separate verdict rules rather than a single threshold?</div>

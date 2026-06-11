@@ -3,8 +3,6 @@ from __future__ import annotations
 import math
 from collections import Counter
 
-from google import genai
-
 _CODON_TABLE: dict[str, str] = {
     "TTT": "F", "TTC": "F", "TTA": "L", "TTG": "L",
     "CTT": "L", "CTC": "L", "CTA": "L", "CTG": "L",

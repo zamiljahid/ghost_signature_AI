@@ -25,7 +25,7 @@ def find_ghost_motifs(query_seq, background_seqs, k=6, top_n=10):
 
     enrichment = {}
     for kmer, qf in q_freq.items():
-        bg_f = (bg_counts.get(kmer, 0) + 1) / (bg_total + 1)  # +1 Laplace smooth
+        bg_f = (bg_counts.get(kmer, 0) + 1) / (bg_total + 4**k)  # Laplace smooth: add-one over full k-mer alphabet
         enrichment[kmer] = qf / bg_f  # fold enrichment
 
     ranked = sorted(enrichment.items(), key=lambda x: -x[1])

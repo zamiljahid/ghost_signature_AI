@@ -5,13 +5,52 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="fbc3f67d-397d-44e8-9fe0-9e5db781733e" name="Changes" comment="5 engine established">
-      <change afterPath="$PROJECT_DIR$/ai_classifier.png" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/detection_gap.png" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/evidence_hierarchy.png" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/ood_architecture.png" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/signal_gap.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/fetch_dataset.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/architecture.png" beforeDir="false" afterPath="$PROJECT_DIR$/architecture.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Codon_optimisation_analyser.py" beforeDir="false" afterPath="$PROJECT_DIR$/Codon_optimisation_analyser.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/README.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/architecture.html" beforeDir="false" afterPath="$PROJECT_DIR$/architecture.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/dataset_builder.py" beforeDir="false" afterPath="$PROJECT_DIR$/dataset_builder.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/dist/config.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dist/pyarmor_runtime_000000/__init__.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/dist/pyarmor_runtime_000000/pyarmor_runtime.so" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/evaluate.py" beforeDir="false" afterPath="$PROJECT_DIR$/evaluate.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/ghost_config.py" beforeDir="false" afterPath="$PROJECT_DIR$/ghost_config.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/ghost_forensics.py" beforeDir="false" afterPath="$PROJECT_DIR$/ghost_forensics.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/main.py" beforeDir="false" afterPath="$PROJECT_DIR$/main.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/motif_discovery.py" beforeDir="false" afterPath="$PROJECT_DIR$/motif_discovery.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/ood_scorer.py" beforeDir="false" afterPath="$PROJECT_DIR$/ood_scorer.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/outputs/baseline_comparison.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/outputs/codon_Human_Mitochondrial_CytoB_Natural.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/outputs/codon_Natural_ASFV_Segment.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/outputs/codon_pUC19_Test_Fragment.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/outputs/confusion_matrix.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/outputs/cover_comparison_chart.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/outputs/cv_summary.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/outputs/evidence_summary.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/outputs/forensics/High_GC_Synthetic_saliency.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/outputs/forensics/Human_Mitochondrial_CytoB_Natural_saliency.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/outputs/forensics/Natural_ASFV_Segment_saliency.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/outputs/forensics/novelty_signal_gap.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/outputs/forensics/pUC19_Test_Fragment_saliency.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/outputs/novelty_signal_gap.png" beforeDir="false" afterPath="$PROJECT_DIR$/outputs/novelty_signal_gap.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/outputs/ood_histogram.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/outputs/per_dna_ood/ghost_0000.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/outputs/per_dna_ood/ghost_0001.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/outputs/per_dna_ood/ghost_0002.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/outputs/per_dna_ood/ghost_0003.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/outputs/per_dna_ood/ghost_0005.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/outputs/per_dna_ood/ghost_0007.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/outputs/per_dna_ood/ghost_0009.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/outputs/per_dna_ood/ghost_0010.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/outputs/per_dna_ood/ghost_0011.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/outputs/per_dna_ood/ghost_0012.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/outputs/pr_curve.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/outputs/roc_curve.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/outputs/saliency_pUC19_Test_Fragment.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/outputs/threshold_table.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/signal_gap.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/train_model.py" beforeDir="false" afterPath="$PROJECT_DIR$/train_model.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -39,31 +78,41 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent">{
-  &quot;keyToString&quot;: {
-    &quot;ModuleVcsDetector.initialDetectionPerformed&quot;: &quot;true&quot;,
-    &quot;Python.dataset_builder.executor&quot;: &quot;Run&quot;,
-    &quot;Python.evaluate.executor&quot;: &quot;Run&quot;,
-    &quot;Python.main.executor&quot;: &quot;Run&quot;,
-    &quot;Python.prepare_data.executor&quot;: &quot;Run&quot;,
-    &quot;Python.train_model.executor&quot;: &quot;Run&quot;,
-    &quot;Python.trainer.executor&quot;: &quot;Run&quot;,
-    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager.252&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.git.unshallow&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.typescript.service.memoryLimit.init&quot;: &quot;true&quot;,
-    &quot;ai.playground.ignore.import.keys.banner.in.settings&quot;: &quot;true&quot;,
-    &quot;git-widget-placeholder&quot;: &quot;main&quot;,
-    &quot;last_opened_file_path&quot;: &quot;/Users/macbookair/PycharmProjects/PythonProject&quot;,
-    &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
-    &quot;node.js.detected.package.tslint&quot;: &quot;true&quot;,
-    &quot;node.js.selected.package.eslint&quot;: &quot;(autodetect)&quot;,
-    &quot;node.js.selected.package.tslint&quot;: &quot;(autodetect)&quot;,
-    &quot;nodejs_package_manager_path&quot;: &quot;npm&quot;,
-    &quot;settings.editor.selected.configurable&quot;: &quot;preferences.pluginManager&quot;,
-    &quot;vue.rearranger.settings.migration&quot;: &quot;true&quot;
+  <component name="PropertiesComponent"><![CDATA[{
+  "keyToString": {
+    "ModuleVcsDetector.initialDetectionPerformed": "true",
+    "Python.ablation_study.executor": "Run",
+    "Python.ablation_window_size.executor": "Run",
+    "Python.benchmark.executor": "Run",
+    "Python.collect_ghost_results.executor": "Run",
+    "Python.dataset_builder.executor": "Run",
+    "Python.evaluate.executor": "Run",
+    "Python.fetch_dataset.executor": "Run",
+    "Python.final_comparison.executor": "Run",
+    "Python.final_comparison_independent.executor": "Run",
+    "Python.kmer_baseline.executor": "Run",
+    "Python.main.executor": "Run",
+    "Python.metrics_utils.executor": "Run",
+    "Python.prepare_data.executor": "Run",
+    "Python.statistical_tests.executor": "Run",
+    "Python.train_model.executor": "Run",
+    "Python.trainer.executor": "Run",
+    "RunOnceActivity.ShowReadmeOnStart": "true",
+    "RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager.252": "true",
+    "RunOnceActivity.git.unshallow": "true",
+    "RunOnceActivity.typescript.service.memoryLimit.init": "true",
+    "ai.playground.ignore.import.keys.banner.in.settings": "true",
+    "git-widget-placeholder": "main",
+    "last_opened_file_path": "/Users/macbookair/PycharmProjects/PythonProject",
+    "node.js.detected.package.eslint": "true",
+    "node.js.detected.package.tslint": "true",
+    "node.js.selected.package.eslint": "(autodetect)",
+    "node.js.selected.package.tslint": "(autodetect)",
+    "nodejs_package_manager_path": "npm",
+    "settings.editor.selected.configurable": "preferences.pluginManager",
+    "vue.rearranger.settings.migration": "true"
   }
-}</component>
+}]]></component>
   <component name="RecentsManager">
     <key name="CopyFile.RECENT_KEYS">
       <recent name="$PROJECT_DIR$" />
@@ -74,8 +123,8 @@
       <recent name="$PROJECT_DIR$/data" />
     </key>
   </component>
-  <component name="RunManager" selected="Python.main">
-    <configuration name="dataset_builder" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
+  <component name="RunManager" selected="Python.statistical_tests">
+    <configuration name="ablation_study" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
       <module name="PythonProject" />
       <option name="ENV_FILES" value="" />
       <option name="INTERPRETER_OPTIONS" value="" />
@@ -89,7 +138,7 @@
       <option name="ADD_CONTENT_ROOTS" value="true" />
       <option name="ADD_SOURCE_ROOTS" value="true" />
       <option name="RUN_TOOL" value="" />
-      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/dataset_builder.py" />
+      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/ablation_study.py" />
       <option name="PARAMETERS" value="" />
       <option name="SHOW_COMMAND_LINE" value="false" />
       <option name="EMULATE_TERMINAL" value="false" />
@@ -98,7 +147,7 @@
       <option name="INPUT_FILE" value="" />
       <method v="2" />
     </configuration>
-    <configuration name="evaluate" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
+    <configuration name="ablation_window_size" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
       <module name="PythonProject" />
       <option name="ENV_FILES" value="" />
       <option name="INTERPRETER_OPTIONS" value="" />
@@ -112,7 +161,7 @@
       <option name="ADD_CONTENT_ROOTS" value="true" />
       <option name="ADD_SOURCE_ROOTS" value="true" />
       <option name="RUN_TOOL" value="" />
-      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/evaluate.py" />
+      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/ablation_window_size.py" />
       <option name="PARAMETERS" value="" />
       <option name="SHOW_COMMAND_LINE" value="false" />
       <option name="EMULATE_TERMINAL" value="false" />
@@ -134,7 +183,6 @@
       <option name="IS_MODULE_SDK" value="true" />
       <option name="ADD_CONTENT_ROOTS" value="true" />
       <option name="ADD_SOURCE_ROOTS" value="true" />
-      <EXTENSION ID="PythonCoverageRunConfigurationExtension" runner="coverage.py" />
       <option name="RUN_TOOL" value="" />
       <option name="SCRIPT_NAME" value="$PROJECT_DIR$/main.py" />
       <option name="PARAMETERS" value="" />
@@ -145,7 +193,7 @@
       <option name="INPUT_FILE" value="" />
       <method v="2" />
     </configuration>
-    <configuration name="train_model" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
+    <configuration name="metrics_utils" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
       <module name="PythonProject" />
       <option name="ENV_FILES" value="" />
       <option name="INTERPRETER_OPTIONS" value="" />
@@ -159,7 +207,7 @@
       <option name="ADD_CONTENT_ROOTS" value="true" />
       <option name="ADD_SOURCE_ROOTS" value="true" />
       <option name="RUN_TOOL" value="" />
-      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/train_model.py" />
+      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/metrics_utils.py" />
       <option name="PARAMETERS" value="" />
       <option name="SHOW_COMMAND_LINE" value="false" />
       <option name="EMULATE_TERMINAL" value="false" />
@@ -168,7 +216,7 @@
       <option name="INPUT_FILE" value="" />
       <method v="2" />
     </configuration>
-    <configuration name="trainer" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
+    <configuration name="statistical_tests" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
       <module name="PythonProject" />
       <option name="ENV_FILES" value="" />
       <option name="INTERPRETER_OPTIONS" value="" />
@@ -182,7 +230,7 @@
       <option name="ADD_CONTENT_ROOTS" value="true" />
       <option name="ADD_SOURCE_ROOTS" value="true" />
       <option name="RUN_TOOL" value="" />
-      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/trainer.py" />
+      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/statistical_tests.py" />
       <option name="PARAMETERS" value="" />
       <option name="SHOW_COMMAND_LINE" value="false" />
       <option name="EMULATE_TERMINAL" value="false" />
@@ -193,11 +241,11 @@
     </configuration>
     <recent_temporary>
       <list>
+        <item itemvalue="Python.statistical_tests" />
         <item itemvalue="Python.main" />
-        <item itemvalue="Python.train_model" />
-        <item itemvalue="Python.dataset_builder" />
-        <item itemvalue="Python.evaluate" />
-        <item itemvalue="Python.trainer" />
+        <item itemvalue="Python.metrics_utils" />
+        <item itemvalue="Python.ablation_window_size" />
+        <item itemvalue="Python.ablation_study" />
       </list>
     </recent_temporary>
   </component>

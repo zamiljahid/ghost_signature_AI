@@ -1,0 +1,72 @@
+##### STAGE ablation_study START 23:08:09
+=================================================================
+Ghost Signature — Engine Ablation Suite (Independent Test Sets)
+=================================================================
+[OK] Serialized model and vectorizer parsed successfully.
+[DATA] Loading all independent test sets...
+  Loaded 120 sequences | 0 Engineered/Ghost | 120 Natural
+  Loaded 120 sequences | 120 Engineered/Ghost | 0 Natural
+  Loaded 120 sequences | 120 Engineered/Ghost | 0 Natural
+
+[PROCESS] Running ablation configuration tests...
+  Data matrix recorded → outputs/ablation/ablation_table.csv
+  Chart generated cleanly → outputs/ablation/ablation_chart.png
+
+[DONE] Finished execution. Outputs located in: outputs/ablation/
+##### ablation_study EXIT=0
+##### STAGE ablation_window_size START 23:14:32
+======================================================================
+ Window-size sensitivity ablation (group-aware CV + DeLong CI)
+======================================================================
+[DATA] Loaded 180 genomes ([60, 60, 60] per class).
+
+── Window size: 250 bp ──
+  Generated 20267 windows from 180 genomes
+  AUROC(macro CV)=0.7454 | AUROC(Nat-OvR)=0.6831 [0.6643,0.7020] | R_Nat=0.9527 | R_Vec=0.3586 | R_Gho=0.0491
+
+── Window size: 500 bp ──
+  Generated 10133 windows from 180 genomes
+  AUROC(macro CV)=0.8020 | AUROC(Nat-OvR)=0.7686 [0.7436,0.7935] | R_Nat=0.9830 | R_Vec=0.4103 | R_Gho=0.0158
+
+── Window size: 1000 bp ──
+  Generated 5074 windows from 180 genomes
+  AUROC(macro CV)=0.8260 | AUROC(Nat-OvR)=0.8039 [0.7716,0.8363] | R_Nat=0.9905 | R_Vec=0.5421 | R_Gho=0.0000
+
+── Window size: 2000 bp ──
+  Generated 2563 windows from 180 genomes
+  AUROC(macro CV)=0.8798 | AUROC(Nat-OvR)=0.8514 [0.8188,0.8840] | R_Nat=0.9913 | R_Vec=0.6144 | R_Gho=0.0000
+
+Ablation table written to outputs/ablation_window/ablation_window_size.csv
+ window_bp  n_windows  auroc_natural_ovr  auroc_ci_lo  auroc_ci_hi  auroc_macro_cv  recall_Natural  recall_Vector  recall_Ghost  train_time_s
+       250      20267           0.683115     0.664260     0.701970        0.745363        0.952717       0.358615      0.049051          21.3
+       500      10133           0.768582     0.743643     0.793521        0.802010        0.982995       0.410266      0.015789          15.2
+      1000       5074           0.803915     0.771569     0.836261        0.826035        0.990463       0.542111      0.000000          12.5
+      2000       2563           0.851417     0.818816     0.884018        0.879772        0.991299       0.614379      0.000000           9.9
+##### ablation_window_size EXIT=0
+##### STAGE statistical_tests START 23:15:32
+======================================================================
+Ghost Signature — Verification Significance Protocols
+======================================================================
+[DATA] Parsed 360 target reference sequences securely from FASTA format.
+[GS] Computing actual Ghost Signature predictions from trained model...
+  [GS] Loaded trained model for real Ghost Signature predictions.
+
+[PROCESS] Evaluating cross-contingency significance indices...
+    vs DeepVirFinder     : p-value = 0.0000 [SIGNIFICANT] using McNemar Chi-squared (continuity corrected)
+    vs DeePaC            : p-value = 0.0000 [SIGNIFICANT] using McNemar Chi-squared (continuity corrected)
+    vs k-mer Baseline    : p-value = 0.0000 [SIGNIFICANT] using McNemar Chi-squared (continuity corrected)
+
+[McNEMAR] Recomputing Table VI from prediction arrays...
+  McNemar [Ours vs BLAST UniVec]: chi2=75.2573, p=4.13194e-18, b=230, c=77
+  ⚠ WARNING: chi2=75.26 for 'DeepVirFinder' matches 'BLAST UniVec'. Verify prediction arrays are distinct.
+  McNemar [Ours vs DeepVirFinder]: chi2=75.2573, p=4.13194e-18, b=230, c=77
+  McNemar [Ours vs DeePaC]: chi2=87.7500, p=7.42729e-21, b=137, c=19
+  McNemar [Ours vs k-mer Baseline]: chi2=148.5748, p=3.55204e-34, b=252, c=42
+
+  McNemar results written to outputs/statistical_tests/mcnemar_table_VI.csv
+  All chi2 distinct: NO ⚠
+  Confidence Interval plots rendered → outputs/statistical_tests/ci_chart.png
+
+[DONE] Diagnostic statistical operations finished successfully.
+##### statistical_tests EXIT=0
+##### SUITE_DONE 23:20:55

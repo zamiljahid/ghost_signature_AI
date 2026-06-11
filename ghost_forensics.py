@@ -51,18 +51,19 @@ class GhostForensics:
             # Standard Random Forest / XGBoost
             weights = model.feature_importances_
         elif hasattr(model, 'final_estimator_'):
-            # For Stacking: Get importances from the meta-learner
-            meta = model.final_estimator_
-            if hasattr(meta, 'coef_'):
-                # If meta-learner is Logistic Regression (common)
-                # Take absolute values of weights for the 'Ghost' class
-                # Note: Meta-learner sees base-model outputs, so we approximate
-                # by looking at the first base estimator's importance
-                weights = model.estimators_[0].feature_importances_
-            else:
-                weights = meta.feature_importances_
+            # StackingClassifier: named_estimators_ gives a dict of fitted base estimators.
+            # estimators_[0] is a (name, estimator) tuple — calling .feature_importances_
+            # on a tuple raises AttributeError. Use named_estimators_ instead.
+            try:
+                weights = model.named_estimators_['rf'].feature_importances_
+            except (KeyError, AttributeError):
+                try:
+                    # Fallback: first estimator if 'rf' key absent
+                    weights = model.estimators_[0][1].feature_importances_
+                except (IndexError, AttributeError):
+                    return np.zeros(len(sequence))
         else:
-            # Fallback: Default to uniform if weights can't be extracted
+            # Fallback: weights can't be extracted
             return np.zeros(len(sequence))
 
         # 2. Map k-mers in the sequence to their 'Ghost Weight'
@@ -124,6 +125,14 @@ class GhostForensics:
 # --- Integration into Main Loop ---
 
 def run_forensic_extension(detector, records):
+    # DEPRECATED: This function uses np.random.uniform for simulated BLAST scores
+    # and is not called from the main pipeline. It is kept for reference only.
+    import warnings
+    warnings.warn(
+        "run_forensic_extension() is deprecated and uses simulated data. "
+        "Do not call this in production.",
+        DeprecationWarning, stacklevel=2
+    )
     forensics = GhostForensics()
 
     all_blast = []

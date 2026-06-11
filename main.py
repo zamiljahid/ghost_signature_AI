@@ -21,6 +21,13 @@ from matplotlib.patches import Rectangle
 from ghost_config import *
 from motif_discovery import find_ghost_motifs
 from ood_scorer import GhostOODScorer
+# NOTE: fuse_engine_scores / fusion_weights are intentionally NOT imported anymore.
+# The headline score is AI-classifier-driven with hard BLAST/motif overrides
+# (cascade), not a convex blend — the OOD engine has zero voting power (see
+# build_engine_evidence). OOD remains a passive diagnostic tag only.
+from explainability import (
+    kmer_shap_evidence, ood_shap_evidence, motif_evidence, build_forensic_report,
+)
 from Codon_optimisation_analyser import CodonOptimisationAnalyser
 from narrative_engine import ForensicNarrativeEngine
 
@@ -63,15 +70,16 @@ def clean_sequence(seq: str) -> str:
     return "".join(c for c in str(seq).upper() if c in "ATGCN")
 
 
-def to_kmers(seq: str, k: int = KMER_SIZE) -> str:
-    return " ".join(seq[i: i + k] for i in range(max(0, len(seq) - k + 1)))
+def to_kmers(seq: str, k: int = None) -> str:
+    from kmer_utils import seq_to_kmers_multiscale
+    return seq_to_kmers_multiscale(seq)
 
 
 def chunk_sequence(seq: str, chunk: int = CHUNK_SIZE) -> list[str]:
     chunks = []
     for i in range(0, max(1, len(seq)), chunk):
         frag = seq[i: i + chunk]
-        if len(frag) >= KMER_SIZE: chunks.append(frag)
+        if len(frag) >= 4: chunks.append(frag)
     return chunks
 
 
@@ -88,7 +96,7 @@ def load_background_sequences(limit: int = 20) -> list[str]:
     seqs = []
     for rec in SeqIO.parse(path, "fasta"):
         seq = clean_sequence(str(rec.seq))
-        if len(seq) >= KMER_SIZE: seqs.append(seq[:50000])
+        if len(seq) >= 4: seqs.append(seq[:50000])
         if len(seqs) >= limit: break
     return seqs
 
@@ -160,7 +168,7 @@ class GhostSignatureReport:
         self.model_classes: list[int] = [];
         self.model_note = "Model not loaded"
         self.background_sequences = load_background_sequences()
-        self.ood = GhostOODScorer(vectorizer_path=str(self.vectorizer_path), envelope_path=str(self.ood_path))
+        self.ood = GhostOODScorer(envelope_path=str(self.ood_path))
         self.output_dir.mkdir(exist_ok=True);
         self.load_artifacts()
 
@@ -230,14 +238,28 @@ class GhostSignatureReport:
         except:
             return []
 
-    def verdict(self, hits: pd.DataFrame, ai_risk: float, ood_score: float, known_motifs: list[str]) -> tuple[
-        str, str, tuple[int, int, int]]:
+    def verdict(self, hits: pd.DataFrame, ai_risk: float, ood_score: float, known_motifs: list[str],
+                seq_len: int = 0) -> tuple[str, str, tuple[int, int, int]]:
         if not hits.empty or known_motifs: return ("CONFIRMED LAB-ENGINEERED", "Direct evidence detected.",
                                                    (190, 25, 25))
-        if ai_risk >= 60 or ood_score >= OOD_THRESHOLD: return ("SUSPECTED ENGINEERED",
-                                                                "Structural anomaly without direct homology.",
-                                                                (235, 125, 20))
-        if ai_risk >= 35 or ood_score >= 35: return ("BORDERLINE / REVIEW", "Mixed signals.", (190, 155, 25))
+        # Short sequences (<100 bp) contain too few k-mers for the AI gate to be reliable.
+        # Route to BLAST/motif evidence only; return BORDERLINE as the floor when no direct evidence found.
+        if seq_len > 0 and seq_len < SHORT_SEQ_GHOST_POLICY:
+            return ("BORDERLINE / REVIEW",
+                    f"Sequence is {seq_len} bp — too short for AI classification. "
+                    "No direct BLAST or motif evidence found.",
+                    (190, 155, 25))
+        # AI-DRIVEN VERDICT. The OOD engine has ZERO voting power here: ablation showed
+        # its anomaly score (independent-test AUROC 0.248) treats natural evolutionary
+        # variance as synthetic, inverting the ranking and dragging the fused system to
+        # 0.564. The verdict is now gated on the regularized AI classifier alone (plus
+        # the hard BLAST/motif evidence override above). `ood_score` is accepted only so
+        # the call site is unchanged; it is logged as passive diagnostic metadata, never
+        # used in the decision. (The previous AI-AND-OOD dual gate is removed.)
+        if ai_risk >= AI_SUSPECT_THRESHOLD:
+            return ("SUSPECTED ENGINEERED", "High AI engineered-risk score.", (235, 125, 20))
+        if ai_risk >= AI_BORDERLINE_THRESHOLD:
+            return ("BORDERLINE / REVIEW", "Moderate AI engineered-risk score.", (190, 155, 25))
         return "LIKELY NATURAL", "No strong synthetic markers.", (25, 135, 85)
 
     def generate_plot(self, rec_id: str, seq: str, hits: pd.DataFrame, ai_risk: float, ood_score: float) -> tuple[
@@ -272,9 +294,9 @@ class GhostSignatureReport:
         ai_positions, ai_values = [], [];
         step = max(50, seq_len // 40) if seq_len else 50;
         span = max(CHUNK_SIZE, step)
-        for i in range(0, max(1, seq_len - KMER_SIZE + 1), step):
+        for i in range(0, max(1, seq_len - 4 + 1), step):
             frag = seq[i: i + span]
-            if len(frag) >= KMER_SIZE: ai_positions.append(i + len(frag) / 2); ai_values.append(
+            if len(frag) >= 4: ai_positions.append(i + len(frag) / 2); ai_values.append(
                 self.ai_risk_score(self.predict_probabilities(frag)))
         if not ai_values: ai_positions, ai_values = [seq_len / 2], [ai_risk]
         ax_ai.plot(ai_positions, ai_values, color="#E53935", lw=2.2)
@@ -304,6 +326,81 @@ class GhostSignatureReport:
         plt.close(fig)
         return img_path, {}
 
+    def build_engine_evidence(self, rec_id: str, seq: str, hits: pd.DataFrame,
+                              ai_risk: float, ood_details: dict,
+                              known_motifs: list[str], codon_result: dict) -> tuple[dict, str]:
+        """Issue 6: assemble bounded per-engine probabilities + human-readable
+        evidence lines, then fuse them into a single [0,1] suspicion score.
+
+        Returns (engines_dict, forensic_text)."""
+        # ── k-mer TF-IDF evidence ───────────────────────────────────────────
+        kmer_prob = float(np.clip(ai_risk / 100.0, 0.0, 1.0))
+        kmer_evidence = "n/a"
+        if self.model is not None and self.vectorizer is not None:
+            try:
+                X_sample = self.vectorizer.transform([to_kmers(seq)])
+                feats = self.vectorizer.get_feature_names_out()
+                kmer_evidence = kmer_shap_evidence(self.model, X_sample, X_sample, feats)
+            except Exception as e:
+                kmer_evidence = f"unavailable ({e})"
+
+        # ── OOD evidence ────────────────────────────────────────────────────
+        ood_prob = float(np.clip(ood_details.get("score", 0.0) / 100.0, 0.0, 1.0))
+        ood_evidence = "n/a"
+        if getattr(self.ood, "ready", False):
+            try:
+                from ood_scorer import _KMER4
+                x4 = self.ood._kmer_freq_vector(
+                    "".join(c for c in seq.upper() if c in "ATGC"))
+                ood_evidence = ood_shap_evidence(self.ood.detector,
+                                                 x4.reshape(1, -1), _KMER4)
+            except Exception as e:
+                ood_evidence = f"unavailable ({e})"
+
+        # ── BLAST / Motif / Codon (bounded) ─────────────────────────────────
+        blast_score = 1.0 if (hits is not None and not hits.empty) else 0.0
+        if blast_score and "percent_identity" in hits:
+            top = hits.loc[hits["percent_identity"].idxmax()]
+            blast_top_hit = f"{top.get('subject_id', '?')} ({top['percent_identity']:.1f}% id)"
+        else:
+            blast_top_hit = "no UniVec hit"
+
+        motif_score = float(min(1.0, len(known_motifs) / 3.0))
+        motif_ev = motif_evidence(known_motifs)
+
+        codon_score = 1.0 if codon_result.get("optimisation_flag") else 0.0
+        cai_delta = float(codon_result.get("rscu_bias", 0.0))
+
+        # ── Headline suspicion score: AI classifier + hard DB/motif overrides ──
+        # The OOD engine is STRIPPED of all voting power. The previous convex
+        # fusion (w_kmer*ai + w_ood*ood + ...) inverted rankings because the
+        # unsupervised OOD score (independent-test AUROC 0.248) flags natural
+        # evolutionary variance as synthetic — fusing it dragged the system from
+        # AI-alone 0.903 down to 0.564 (see outputs/ablation/ablation_table.csv).
+        #
+        # This is now a cascade, not a weighted blend: direct database/motif
+        # evidence is a deterministic override (→1.0); otherwise the regularized
+        # AI classifier probability IS the score. OOD and the soft codon signal
+        # contribute NOTHING to S_fused — they are emitted below as passive
+        # diagnostic metadata only.
+        if blast_score >= 1.0 or motif_score > 0.0:
+            s_fused = 1.0                      # hard BLAST/motif override
+        else:
+            s_fused = float(np.clip(kmer_prob, 0.0, 1.0))   # AI classifier drives the score
+
+        engines = {
+            "kmer_prob": kmer_prob, "kmer_evidence": kmer_evidence,
+            # ── Passive diagnostic tags (NOT used in any score/verdict) ──
+            "ood_prob": ood_prob, "ood_evidence": ood_evidence,
+            "raw_ood_score": float(ood_details.get("score", 0.0)),
+            "is_novel_sequence_warning": bool(ood_details.get("score", 0.0) >= OOD_SUSPECT_THRESHOLD),
+            "blast_score": blast_score, "blast_top_hit": blast_top_hit,
+            "motif_score": motif_score, "motif_evidence": motif_ev,
+            "codon_score": codon_score, "cai_delta": cai_delta,
+            "S_fused": s_fused,
+        }
+        return engines, build_forensic_report(rec_id, engines)
+
     def analyze(self) -> tuple[list[dict], list[dict]]:
         self.log("=" * 72);
         self.log("Ghost Signature Detector - Final Forensic PDF Generator");
@@ -332,20 +429,37 @@ class GhostSignatureReport:
                                "flag": "NOT_READY"}
             known_motifs = self.find_known_motifs(seq);
             enriched = self.enriched_motifs(seq)
-            verdict, verdict_reason, color = self.verdict(hits, ai_risk, ood_score, known_motifs)
+            verdict, verdict_reason, color = self.verdict(hits, ai_risk, ood_score, known_motifs, seq_len=len(seq))
             img, plot_data = self.generate_plot(rec.id, seq, hits, ai_risk, ood_score)
             self.log(f"[COD] Running codon optimisation analysis for {rec.id}...")
             codon_analyser = CodonOptimisationAnalyser(seq);
             codon_result = codon_analyser.analyse();
             codon_img = _generate_codon_plot(rec.id, codon_result, self.output_dir)
+            # Issue 6: build per-engine human-readable evidence + bounded fused score.
+            engine_evidence, forensic_text = self.build_engine_evidence(
+                rec.id, seq, hits, ai_risk, ood_details, known_motifs, codon_result)
+            self.log("\n" + forensic_text + "\n")
             self.log(
                 f"[SEQ] {rec.id}: {len(seq)} bp | AI {ai_risk:.1f}% | OOD {ood_score:.1f} | hits {len(hits)} | CAI {codon_result['cai_score']:.3f} | {verdict}")
             results.append({"id": rec.id, "description": rec.description, "seq": seq, "length": len(seq),
                             "gc": gc_fraction(seq) * 100 if seq else 0.0, "hits": hits, "probas": probas,
-                            "ai_risk": ai_risk, "ood_score": ood_score, "ood_details": ood_details,
+                            "ai_risk": ai_risk,
+                            # ── OOD: passive diagnostic metadata only (no voting power) ──
+                            "ood_score": ood_score, "ood_details": ood_details,
+                            "raw_ood_score": ood_score,
+                            "is_novel_sequence_warning": bool(ood_score >= OOD_SUSPECT_THRESHOLD),
                             "known_motifs": known_motifs, "enriched_motifs": enriched, "verdict": verdict,
                             "verdict_reason": verdict_reason, "color": color, "image": img,
-                            "codon_result": codon_result, "codon_image": codon_img})
+                            "codon_result": codon_result, "codon_image": codon_img,
+                            "engine_evidence": engine_evidence, "forensic_text": forensic_text})
+
+        # Issue 6: persist the engine-by-engine evidence so analysts can audit the
+        # reasoning without re-running the pipeline.
+        ev_path = self.output_dir / "forensic_evidence.txt"
+        with open(ev_path, "w") as fh:
+            for r in results:
+                fh.write(r["forensic_text"] + "\n\n")
+        self.log(f"[EVIDENCE] Per-engine forensic evidence written → {ev_path}")
         return results, dataset_stats
 
     def write_pdf(self, results: list[dict], dataset_stats: list[dict]) -> None:
@@ -494,7 +608,7 @@ class GhostSignatureReport:
             if s.ood_prokaryote is not None:
                 lvl = "Anomalous" if s.ood_prokaryote >= 75 else "Elevated" if s.ood_prokaryote >= 50 else "Borderline" if s.ood_prokaryote >= 35 else "Normal"
                 data.append(["Prokaryotic", "Bacterial genomes (E. coli, etc.)", f"{s.ood_prokaryote:.1f}", lvl])
-            data.append(["Final (MAX)", "-", f"{s.ood_score:.1f}", "-"])
+            data.append(["Final (Viral)", "-", f"{s.ood_score:.1f}", "-"])
 
             # --- PAGE-BREAK GUARD: keep label + table + rationale together if they fit ---
             # Estimate: header(7) + up to 3 rows(18) + rationale text(~18) + margins(8) = ~51 pt
@@ -512,9 +626,11 @@ class GhostSignatureReport:
 
             pdf.set_font("Arial", "", 9)
             pdf.multi_cell(0, 5.5, safe_text(
-                "Design Rationale: Taking the maximum score across envelopes ensures that sequences "
-                "anomalous in ANY natural context are flagged. The dual-envelope approach prevents "
-                "synthetic sequences from 'hiding' in the envelope most similar to their source organism."))
+                "Design Rationale: The final OOD score is derived from the viral-envelope IsolationForest, "
+                "trained on natural viral genomes. A prokaryotic reference envelope is computed in parallel "
+                "and shown above for interpretability, but the operational verdict gates use the viral score. "
+                "This approach ensures that sequences with atypical viral structural signatures are flagged "
+                "while remaining robust against prokaryotic contamination artefacts."))
             pdf.ln(1)
         else:
             pdf.set_font("Arial", "", 9)
@@ -748,6 +864,4 @@ def main() -> None:
     if not results: raise SystemExit("[ERROR] No query records found.")
     report.write_pdf(results, dataset_stats)
     print(f"[DONE] Analysis complete. Plots saved to outputs/forensics/")
-
-
 if __name__ == "__main__": main()

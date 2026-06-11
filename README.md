@@ -164,8 +164,8 @@ Ghost Signature implements a **formal four-tier evidence hierarchy**. Direct BLA
 | Verdict | Trigger | Confidence |
 |---|---|---|
 | 🔴 **CONFIRMED LAB-ENGINEERED** | BLAST hit OR known motif | Definitive |
-| 🟠 **SUSPECTED ENGINEERED** | AI >= 60% OR OOD >= threshold | High |
-| 🟡 **BORDERLINE / REVIEW** | AI 35-60% OR OOD 35-threshold | Moderate |
+| 🟠 **SUSPECTED ENGINEERED** | AI >= 60% AND OOD >= 5.0 | High |
+| 🟡 **BORDERLINE / REVIEW** | AI >= 35% AND OOD >= 2.0 | Moderate |
 | 🟢 **LIKELY NATURAL** | All below thresholds | High |
 
 <br>
